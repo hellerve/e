@@ -31,4 +31,4 @@ enum {
   WHITE_BG = 47
 };
 
-void color_append(int color, append_buf* ab, char* str, int len);
+void color_append(int color, append_buf* ab, const char* str, int len);
