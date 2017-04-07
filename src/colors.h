@@ -1,5 +1,7 @@
 #include <stdio.h>
 
+#include "buffer.h"
+
 enum {
   NORMAL,
   BOLD,
@@ -29,4 +31,4 @@ enum {
   WHITE_BG = 47
 };
 
-void color_write(int color, int fd, char* str);
+void color_append(int color, append_buf* ab, char* str, int len);
