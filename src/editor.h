@@ -47,6 +47,7 @@ typedef struct {
   e_row* row;
   int coff;
   int roff;
+  char dirty;
   char statusmsg[80];
   time_t statusmsg_time;
 } e_context;
@@ -75,6 +76,7 @@ void e_process_key(e_context*);
 void e_die(const char*);
 void e_open(e_context*, char*);
 void e_insert_char(e_context*, int);
+void e_del_char(e_context*);
 void e_set_status_msg(e_context*, const char*, ...);
 void e_save(e_context* ctx);
 e_context* e_setup();

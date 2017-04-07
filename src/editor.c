@@ -35,6 +35,15 @@ void e_exit() {
 }
 
 
+void e_exit_prompt(e_context* ctx) {
+  if (ctx->dirty) {
+    e_set_status_msg(ctx, "Unsaved content! Type :! to force or :s to save-quit.");
+    return;
+  }
+  e_exit();
+}
+
+
 void e_draw_rows(e_context* ctx, append_buf* ab) {
   int h;
   int filerow;
@@ -77,8 +86,9 @@ void e_draw_status(e_context* ctx, append_buf* ab) {
   ab_append(ab, "\x1b[47m ", 6);
   char status[80];
   char rstatus[80];
-  int len  = snprintf(status, sizeof(status), "%.20s - %d lines",
-                      ctx->filename ? ctx->filename : "[No Name]", ctx->nrows);
+  int len  = snprintf(status, sizeof(status), "%.20s - %d lines %s",
+                      ctx->filename ? ctx->filename : "[No Name]", ctx->nrows,
+                      ctx->dirty ? "[UNSAVED]" : "");
   int rlen = snprintf(rstatus, sizeof(rstatus), "%d/%d", ctx->cy+1, ctx->nrows);
   color_append(BLUE, ab, status, len);
   len += 12;
@@ -281,6 +291,9 @@ void meta(e_context* ctx) {
 
   switch (c) {
     case 'q':
+      e_exit_prompt(ctx);
+      break;
+    case '!':
       e_exit();
     case 's':
       e_save(ctx);
@@ -311,6 +324,8 @@ void e_edit(e_context* ctx, int c) {
     case BACKSPACE:
     case CTRL('h'):
     case DEL_KEY:
+      if (c == DEL_KEY) e_move_cursor(ctx, ARROW_RIGHT);
+      e_del_char(ctx);
       break;
     case CTRL('l'):
       break;
@@ -341,6 +356,12 @@ void e_initial(e_context* ctx, int c) {
      break;
     case 'e':
       ctx->mode = EDIT;
+      break;
+    case BACKSPACE:
+    case CTRL('h'):
+    case DEL_KEY:
+      if (c == DEL_KEY) e_move_cursor(ctx, ARROW_RIGHT);
+      e_del_char(ctx);
       break;
     case ' ':
       e_save(ctx);
@@ -393,6 +414,7 @@ void e_save(e_context* ctx) {
     e_set_status_msg(ctx, "Could not write to file %s", ctx->filename);
     goto close;
   }
+  ctx->dirty = 0;
   e_set_status_msg(ctx, "Wrote %d bytes to disk (file %s)", len, ctx->filename);
 close:
   close(fd);
@@ -433,6 +455,14 @@ void e_row_insert_char(e_row* row, int at, int c) {
 }
 
 
+void e_row_del_char(e_row *row, int at) {
+  if (at < 0 || at >= row->size) return;
+  memmove(&row->str[at], &row->str[at + 1], row->size - at);
+  row->size--;
+  e_update_row(row);
+}
+
+
 void e_append_row(e_context* ctx, char* s, size_t len) {
   ctx->row = realloc(ctx->row, sizeof(e_row) * (ctx->rows + 1));
 
@@ -445,6 +475,7 @@ void e_append_row(e_context* ctx, char* s, size_t len) {
   ctx->row[at].render = NULL;
   e_update_row(ctx->row+at);
   ctx->nrows++;
+  ctx->dirty = 1;
 }
 
 void e_insert_char(e_context* ctx, int c) {
@@ -452,6 +483,17 @@ void e_insert_char(e_context* ctx, int c) {
 
   e_row_insert_char(&ctx->row[ctx->cy], ctx->cx, c);
   ctx->cx++;
+  ctx->dirty = 1;
+}
+
+
+void e_del_char(e_context* ctx) {
+  if (ctx->cy == ctx->nrows) return;
+  e_row *row = &ctx->row[ctx->cy];
+  if (ctx->cx > 0) {
+    e_row_del_char(row, --ctx->cx);
+    ctx->dirty = 1;
+  }
 }
 
 
@@ -500,5 +542,6 @@ e_context*  e_setup() {
   ctx->rows -= 1;
   ctx->statusmsg[0] = '\0';
   ctx->statusmsg_time = 0;
+  ctx->dirty = 0;
   return ctx;
 }
