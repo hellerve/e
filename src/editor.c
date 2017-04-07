@@ -1,14 +1,14 @@
 #include "editor.h"
 
-void disable_raw_mode(e_config* conf) {
-  if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &conf->orig) == -1) e_die("tcsetattr");
+void disable_raw_mode(e_context* ctx) {
+  if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &ctx->orig) == -1) e_die("tcsetattr");
 }
 
 
-void enable_raw_mode(e_config* conf) {
+void enable_raw_mode(e_context* ctx) {
   struct termios raw;
 
-  raw = conf->orig;
+  raw = ctx->orig;
   raw.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
   raw.c_oflag &= ~(OPOST);
   raw.c_cflag |= CS8;
@@ -27,6 +27,7 @@ void e_die(const char *s) {
   exit(1);
 }
 
+
 void e_exit() {
   write(STDOUT_FILENO, "\x1b[2J", 4);
   write(STDOUT_FILENO, "\x1b[H", 3);
@@ -34,41 +35,41 @@ void e_exit() {
 }
 
 
-void e_draw_rows(e_config* conf, append_buf* ab) {
+void e_draw_rows(e_context* ctx, append_buf* ab) {
   int h;
   int filerow;
 
-  for (h = 0; h < conf->rows-1; h++) {
-    filerow = h + conf->roff;
-    if (h >= conf->nrows) {
+  for (h = 0; h < ctx->rows-1; h++) {
+    filerow = h + ctx->roff;
+    if (h >= ctx->nrows) {
       color_append(BLUE, ab, "~\x1b[K", 4);
-      if (h == conf->rows / 3 && !conf->nrows) {
+      if (h == ctx->rows / 3 && !ctx->nrows) {
         char welcome[80];
         int len = snprintf(welcome, sizeof(welcome),
                            "E -- braindead editing -- version %s",
                            E_VERSION);
-        if (len > conf->cols) len = conf->cols;
-        int padding = (conf->cols - len) / 2;
+        if (len > ctx->cols) len = ctx->cols;
+        int padding = (ctx->cols - len) / 2;
         while (padding--) ab_append(ab, " ", 1);
         ab_append(ab, welcome, len);
       }
     } else {
       ab_append(ab, "\x1b[K", 3);
-      int len = conf->row[filerow].rsize - conf->coff;
+      int len = ctx->row[filerow].rsize - ctx->coff;
       if (len < 0) len = 0;
-      if (len > conf->cols) len = conf->cols;
-      ab_append(ab, &conf->row[filerow].render[conf->coff], len);
+      if (len > ctx->cols) len = ctx->cols;
+      ab_append(ab, &ctx->row[filerow].render[ctx->coff], len);
     }
     ab_append(ab, "\r\n", 2);
   }
 }
 
 
-void e_draw_status(e_config* conf, append_buf* ab) {
-  if (conf->mode == EDIT) {
+void e_draw_status(e_context* ctx, append_buf* ab) {
+  if (ctx->mode == EDIT) {
     ab_append(ab, "\x1b[43m", 5);
     color_append(BLACK, ab, "EDIT mode ", 10);
-  } else if (conf->mode == INITIAL) {
+  } else if (ctx->mode == INITIAL) {
     ab_append(ab, "\x1b[44m", 5);
     color_append(WHITE, ab, "INIT mode ", 10);
   }
@@ -77,14 +78,14 @@ void e_draw_status(e_config* conf, append_buf* ab) {
   char status[80];
   char rstatus[80];
   int len  = snprintf(status, sizeof(status), "%.20s - %d lines",
-                      conf->filename ? conf->filename : "[No Name]", conf->nrows);
-  int rlen = snprintf(rstatus, sizeof(rstatus), "%d/%d", conf->cy+1, conf->nrows);
+                      ctx->filename ? ctx->filename : "[No Name]", ctx->nrows);
+  int rlen = snprintf(rstatus, sizeof(rstatus), "%d/%d", ctx->cy+1, ctx->nrows);
   color_append(BLUE, ab, status, len);
   len += 12;
 
   ab_append(ab, "\x1b[47m ", 6);
-  while (len < conf->cols) {
-    if (conf->cols-len == rlen) {
+  while (len < ctx->cols) {
+    if (ctx->cols-len == rlen) {
       color_append(BLUE, ab, rstatus, rlen);
       break;
     }
@@ -95,31 +96,31 @@ void e_draw_status(e_config* conf, append_buf* ab) {
 }
 
 
-void e_draw_message(e_config* conf, append_buf* ab) {
+void e_draw_message(e_context* ctx, append_buf* ab) {
   ab_append(ab, "\x1b[K", 3);
-  int len = strlen(conf->statusmsg);
-  if (len > conf->cols) len = conf->cols;
-  if (len && time(NULL) - conf->statusmsg_time < 5) ab_append(ab, conf->statusmsg, len);
+  int len = strlen(ctx->statusmsg);
+  if (len > ctx->cols) len = ctx->cols;
+  if (len && time(NULL) - ctx->statusmsg_time < 5) ab_append(ab, ctx->statusmsg, len);
 }
 
 
-void e_set_status_msg(e_config* conf, const char* fmt, ...) {
+void e_set_status_msg(e_context* ctx, const char* fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
-  vsnprintf(conf->statusmsg, sizeof(conf->statusmsg), fmt, ap);
+  vsnprintf(ctx->statusmsg, sizeof(ctx->statusmsg), fmt, ap);
   va_end(ap);
-  conf->statusmsg_time = time(NULL);
+  ctx->statusmsg_time = time(NULL);
 }
 
 
-void e_get_win_size(e_config* conf) {
+void e_get_win_size(e_context* ctx) {
   struct winsize ws;
   if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
     e_die("ioctl");
   }
 
-  conf->cols = ws.ws_col;
-  conf->rows = ws.ws_row;
+  ctx->cols = ws.ws_col;
+  ctx->rows = ws.ws_row;
 }
 
 
@@ -136,35 +137,35 @@ int e_cx_to_rx(e_row* row, int cx){
 
 
 
-void e_scroll(e_config* conf) {
-  conf->rx = 0;
-  if (conf->cy < conf->nrows) conf->rx = e_cx_to_rx(&conf->row[conf->cy], conf->cx);
+void e_scroll(e_context* ctx) {
+  ctx->rx = 0;
+  if (ctx->cy < ctx->nrows) ctx->rx = e_cx_to_rx(&ctx->row[ctx->cy], ctx->cx);
 
-  if (conf->cy < conf->roff) conf->roff = conf->cy;
-  if (conf->cy >= conf->roff + conf->rows) {
-    conf->roff = conf->cy - conf->rows + 1;
+  if (ctx->cy < ctx->roff) ctx->roff = ctx->cy;
+  if (ctx->cy >= ctx->roff + ctx->rows) {
+    ctx->roff = ctx->cy - ctx->rows + 1;
   }
-  if (conf->rx < conf->coff) conf->coff = conf->rx;
-  if (conf->rx >= conf->coff + conf->cols) {
-    conf->coff = conf->rx - conf->cols + 1;
+  if (ctx->rx < ctx->coff) ctx->coff = ctx->rx;
+  if (ctx->rx >= ctx->coff + ctx->cols) {
+    ctx->coff = ctx->rx - ctx->cols + 1;
   }
 }
 
 
-void e_clear_screen(e_config* conf) {
-  e_scroll(conf);
+void e_clear_screen(e_context* ctx) {
+  e_scroll(ctx);
 
   append_buf ab = ABUF_INIT;
   ab_append(&ab, "\x1b[?25l", 6);
   ab_append(&ab, "\x1b[H", 3);
 
-  e_draw_rows(conf, &ab);
-  e_draw_status(conf, &ab);
-  e_draw_message(conf, &ab);
+  e_draw_rows(ctx, &ab);
+  e_draw_status(ctx, &ab);
+  e_draw_message(ctx, &ab);
 
   char buf[32];
-  snprintf(buf, sizeof(buf), "\x1b[%d;%dH", conf->cy-conf->roff+1,
-                                            conf->rx-conf->coff+1);
+  snprintf(buf, sizeof(buf), "\x1b[%d;%dH", ctx->cy-ctx->roff+1,
+                                            ctx->rx-ctx->coff+1);
   ab_append(&ab, buf, strlen(buf));
   ab_append(&ab, "\x1b[?25h", 6);
 
@@ -173,44 +174,44 @@ void e_clear_screen(e_config* conf) {
 }
 
 
-void e_move_cursor(e_config* conf, int c) {
-  int rowl = (conf->cy >= conf->nrows) ? 0 : conf->row[conf->cy].size;
+void e_move_cursor(e_context* ctx, int c) {
+  int rowl = (ctx->cy >= ctx->nrows) ? 0 : ctx->row[ctx->cy].size;
   switch (c) {
     case 'a':
     case ARROW_LEFT:
-      if (conf->cx) conf->cx--;
-      else if (conf->cy > 0) conf->cx = conf->row[--conf->cy].size;
+      if (ctx->cx) ctx->cx--;
+      else if (ctx->cy > 0) ctx->cx = ctx->row[--ctx->cy].size;
       break;
     case 'd':
     case ARROW_RIGHT:
-      if (conf->cx < rowl) conf->cx++;
-      else if (conf->cy < conf->nrows-1) { conf->cy++; conf->cx = 0; }
+      if (ctx->cx < rowl) ctx->cx++;
+      else if (ctx->cy < ctx->nrows-1) { ctx->cy++; ctx->cx = 0; }
       break;
     case 'w':
     case ARROW_UP:
-      if (conf->cy) conf->cy--;
+      if (ctx->cy) ctx->cy--;
       break;
     case 's':
     case ARROW_DOWN:
-      if (conf->cy < conf->nrows-1) conf->cy++;
+      if (ctx->cy < ctx->nrows-1) ctx->cy++;
       break;
     case PAGE_UP:
     case PAGE_DOWN:
-      if (c == PAGE_UP) conf->cy = conf->roff;
-      else conf->cy = conf->roff + conf->rows - 1;
-      int t = conf->rows;
-      while (t--) e_move_cursor(conf, c == PAGE_UP ? ARROW_UP : ARROW_DOWN);
+      if (c == PAGE_UP) ctx->cy = ctx->roff;
+      else ctx->cy = ctx->roff + ctx->rows - 1;
+      int t = ctx->rows;
+      while (t--) e_move_cursor(ctx, c == PAGE_UP ? ARROW_UP : ARROW_DOWN);
       break;
     case HOME_KEY:
-      conf->cx = 0;
+      ctx->cx = 0;
       break;
     case END_KEY:
-      if (conf->cy < conf->nrows) conf->cx = conf->row[conf->cy].size;
+      if (ctx->cy < ctx->nrows) ctx->cx = ctx->row[ctx->cy].size;
       break;
   }
-  rowl = (conf->cy >= conf->nrows) ? 0 : conf->row[conf->cy].size;
-  if (conf->cx > rowl) {
-    conf->cx = rowl;
+  rowl = (ctx->cy >= ctx->nrows) ? 0 : ctx->row[ctx->cy].size;
+  if (ctx->cx > rowl) {
+    ctx->cx = rowl;
   }
 }
 
@@ -263,31 +264,34 @@ int e_read_key() {
 }
 
 
-int e_read_meta_key(e_config* conf) {
+int e_read_meta_key(e_context* ctx) {
   char c;
   write(STDOUT_FILENO, "\x1b[999B", 6);
   write(STDOUT_FILENO, "\x1b[K", 3);
-  disable_raw_mode(conf);
+  disable_raw_mode(ctx);
   write(STDOUT_FILENO, "META:", 5);
   c = e_read_key();
-  enable_raw_mode(conf);
+  enable_raw_mode(ctx);
   return c;
 }
 
 
-void meta(e_config* conf) {
-  char c = e_read_meta_key(conf);
+void meta(e_context* ctx) {
+  char c = e_read_meta_key(ctx);
 
   switch (c) {
     case 'q':
       e_exit();
+    case 's':
+      e_save(ctx);
+      e_exit();
     default:
-      e_set_status_msg(conf, "Unknown meta command");
+      e_set_status_msg(ctx, "Unknown meta command");
   }
 }
 
 
-void e_edit(e_config* conf, int c) {
+void e_edit(e_context* ctx, int c) {
   switch (c) {
     case ARROW_UP:
     case ARROW_DOWN:
@@ -297,18 +301,29 @@ void e_edit(e_config* conf, int c) {
     case PAGE_DOWN:
     case HOME_KEY:
     case END_KEY:
-     e_move_cursor(conf, c);
+     e_move_cursor(ctx, c);
      break;
     case ESC:
-      conf->mode = INITIAL;
+      ctx->mode = INITIAL;
+      break;
+    case '\r':
+      break;
+    case BACKSPACE:
+    case CTRL('h'):
+    case DEL_KEY:
+      break;
+    case CTRL('l'):
+      break;
+    default:
+      e_insert_char(ctx, c);
   }
 }
 
 
-void e_initial(e_config* conf, int c) {
+void e_initial(e_context* ctx, int c) {
   switch (c) {
      case ':':
-       meta(conf);
+       meta(ctx);
        break;
     case ARROW_UP:
     case ARROW_DOWN:
@@ -322,25 +337,67 @@ void e_initial(e_config* conf, int c) {
     case 's':
     case 'a':
     case 'd':
-     e_move_cursor(conf, c);
+     e_move_cursor(ctx, c);
      break;
     case 'e':
-      conf->mode = EDIT;
+      ctx->mode = EDIT;
+      break;
+    case ' ':
+      e_save(ctx);
       break;
   }
 }
 
 
-void e_process_key(e_config* conf) {
+void e_process_key(e_context* ctx) {
    int c = e_read_key();
 
-   switch (conf->mode) {
+   switch (ctx->mode) {
       case EDIT:
-        e_edit(conf, c);
+        e_edit(ctx, c);
         break;
       case INITIAL:
-        e_initial(conf, c);
+        e_initial(ctx, c);
    }
+}
+
+
+char* e_rows_to_str(e_context* ctx, int* len) {
+  int total = 0;
+  int j;
+  for (j = 0; j < ctx->nrows; j++) total += ctx->row[j].size + 1;
+  *len = total;
+  char* buf = malloc(total);
+  char* p = buf;
+  for (j = 0; j < ctx->nrows; j++) {
+    memcpy(p, ctx->row[j].str, ctx->row[j].size);
+    p += ctx->row[j].size;
+    *p = '\n';
+    p++;
+  }
+  return buf;
+}
+
+void e_save(e_context* ctx) {
+  if (ctx->filename == NULL) return;
+
+  int len;
+  char* buf = e_rows_to_str(ctx, &len);
+
+  int fd = open(ctx->filename, O_RDWR | O_CREAT, 0644);
+  if (fd == -1) {
+    e_set_status_msg(ctx, "Cannot open file %s for writing", ctx->filename);
+    goto err;
+  }
+  if (ftruncate(fd, len) == -1 || write(fd, buf, len) != len) {
+    e_set_status_msg(ctx, "Could not write to file %s", ctx->filename);
+    goto close;
+  }
+  e_set_status_msg(ctx, "Wrote %d bytes to disk (file %s)", len, ctx->filename);
+close:
+  close(fd);
+err:
+  free(buf);
 }
 
 
@@ -366,34 +423,51 @@ void e_update_row(e_row* row) {
 }
 
 
-void e_append_row(e_config* conf, char* s, size_t len) {
-  conf->row = realloc(conf->row, sizeof(e_row) * (conf->rows + 1));
-
-  int at = conf->nrows;
-  conf->row[at].size = len;
-  conf->row[at].str = malloc(len + 1);
-  memcpy(conf->row[at].str, s, len);
-  conf->row[at].str[len] = '\0';
-  conf->row[at].rsize = 0,
-  conf->row[at].render = NULL;
-  e_update_row(conf->row+at);
-  conf->nrows++;
+void e_row_insert_char(e_row* row, int at, int c) {
+  if (at < 0 || at > row->size) at = row->size;
+  row->str = realloc(row->str, row->size+2);
+  memmove(&row->str[at+1], &row->str[at], row->size-at+1);
+  row->size++;
+  row->str[at] = c;
+  e_update_row(row);
 }
 
 
-void e_open(e_config* conf, char* filename) {
-  free(conf->filename);
-  conf->filename = strdup(filename);
+void e_append_row(e_context* ctx, char* s, size_t len) {
+  ctx->row = realloc(ctx->row, sizeof(e_row) * (ctx->rows + 1));
+
+  int at = ctx->nrows;
+  ctx->row[at].size = len;
+  ctx->row[at].str = malloc(len + 1);
+  memcpy(ctx->row[at].str, s, len);
+  ctx->row[at].str[len] = '\0';
+  ctx->row[at].rsize = 0,
+  ctx->row[at].render = NULL;
+  e_update_row(ctx->row+at);
+  ctx->nrows++;
+}
+
+void e_insert_char(e_context* ctx, int c) {
+  if (ctx->cy == ctx->nrows) e_append_row(ctx, (char*) "", 0);
+
+  e_row_insert_char(&ctx->row[ctx->cy], ctx->cx, c);
+  ctx->cx++;
+}
+
+
+void e_open(e_context* ctx, char* filename) {
+  free(ctx->filename);
+  ctx->filename = strdup(filename);
 
   FILE* fp = fopen(filename, "r");
-  if (!fp) e_die("fopen");
+  if (!fp) return;
 
   char* line = NULL;
   size_t linecap = 0;
   ssize_t len;
   while ((len = getline(&line, &linecap, fp)) != -1) {
     if (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r')) len--;
-    e_append_row(conf, line, len);
+    e_append_row(ctx, line, len);
   }
   free(line);
   fclose(fp);
@@ -401,30 +475,30 @@ void e_open(e_config* conf, char* filename) {
 
 
 // TODO: this is where I'd wish for currying
-e_config* GLOB;
+e_context* GLOB;
 void exitf() {
   disable_raw_mode(GLOB);
 }
 
 
-e_config*  e_setup() {
-  e_config* conf = malloc(sizeof(e_config));
-  if (tcgetattr(STDIN_FILENO, &conf->orig) == -1) e_die("tcgetattr");
-  GLOB = conf;
+e_context*  e_setup() {
+  e_context* ctx = malloc(sizeof(e_context));
+  if (tcgetattr(STDIN_FILENO, &ctx->orig) == -1) e_die("tcgetattr");
+  GLOB = ctx;
   atexit(exitf);
 
-  e_get_win_size(conf);
-  enable_raw_mode(conf);
-  conf->rx = 0;
-  conf->cx = 0;
-  conf->cy = 0;
-  conf->nrows = 0;
-  conf->row = NULL;
-  conf->filename = NULL;
-  conf->coff = 0;
-  conf->roff = 0;
-  conf->rows -= 1;
-  conf->statusmsg[0] = '\0';
-  conf->statusmsg_time = 0;
-  return conf;
+  e_get_win_size(ctx);
+  enable_raw_mode(ctx);
+  ctx->rx = 0;
+  ctx->cx = 0;
+  ctx->cy = 0;
+  ctx->nrows = 0;
+  ctx->row = NULL;
+  ctx->filename = NULL;
+  ctx->coff = 0;
+  ctx->roff = 0;
+  ctx->rows -= 1;
+  ctx->statusmsg[0] = '\0';
+  ctx->statusmsg_time = 0;
+  return ctx;
 }

@@ -4,6 +4,7 @@
 
 #include <ctype.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,6 +19,10 @@
 
 #define E_VERSION "0.0.1"
 #define E_TAB_WIDTH 4
+
+#ifndef CTRL
+#define CTRL(k) ((k) & 0x1f)
+#endif
 
 typedef struct {
   int size;
@@ -44,10 +49,11 @@ typedef struct {
   int roff;
   char statusmsg[80];
   time_t statusmsg_time;
-} e_config;
+} e_context;
 
 enum e_key {
   ESC = 27,
+  BACKSPACE = 127,
   ARROW_LEFT = 1000,
   ARROW_RIGHT,
   ARROW_UP,
@@ -64,9 +70,11 @@ enum e_mode {
   EDIT
 };
 
-void e_clear_screen(e_config* conf);
-void e_process_key(e_config* conf);
-void e_die(const char *s);
-void e_open(e_config* conf, char* filename);
-void e_set_status_msg(e_config* conf, const char* fmt, ...);
-e_config* e_setup();
+void e_clear_screen(e_context*);
+void e_process_key(e_context*);
+void e_die(const char*);
+void e_open(e_context*, char*);
+void e_insert_char(e_context*, int);
+void e_set_status_msg(e_context*, const char*, ...);
+void e_save(e_context* ctx);
+e_context* e_setup();

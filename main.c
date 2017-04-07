@@ -1,7 +1,7 @@
 #include "src/editor.h"
 
 int main(int argc, char** argv) {
-  e_config* e = e_setup();
+  e_context* e = e_setup();
 
   if (argc > 1) {
     e_open(e, argv[1]);
