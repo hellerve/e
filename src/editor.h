@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <regex.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,6 +53,8 @@ typedef struct {
   time_t statusmsg_time;
 } e_context;
 
+typedef void (*e_cb)(e_context*, char*, int);
+
 enum e_key {
   ESC = 27,
   BACKSPACE = 127,
@@ -79,5 +82,6 @@ void e_insert_char(e_context*, int);
 void e_del_char(e_context*);
 void e_set_status_msg(e_context*, const char*, ...);
 void e_save(e_context*);
-char* e_prompt(e_context*, const char*);
+char* e_prompt(e_context*, const char*, e_cb);
+void e_find(e_context*);
 e_context* e_setup();

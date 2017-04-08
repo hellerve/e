@@ -135,6 +135,18 @@ void e_get_win_size(e_context* ctx) {
 }
 
 
+int e_rx_to_cx(e_row* row, int rx) {
+  int cur_rx = 0;
+  int cx;
+  for (cx = 0; cx < row->size; cx++) {
+    if (row->str[cx] == '\t') cur_rx += (E_TAB_WIDTH - 1) - (cur_rx % E_TAB_WIDTH);
+    cur_rx++;
+    if (cur_rx > rx) return cx;
+  }
+  return cx;
+}
+
+
 int e_cx_to_rx(e_row* row, int cx){
   int rx = 0;
   int j;
@@ -276,7 +288,7 @@ int e_read_key() {
 
 
 void meta(e_context* ctx) {
-  char* c = e_prompt(ctx, "Meta:%s");
+  char* c = e_prompt(ctx, "Meta:%s", NULL);
 
   if (!strcmp(c, "q") || !strcmp(c, "quit")) e_exit_prompt(ctx);
   else if (!strcmp(c, "!")) e_exit();
@@ -323,9 +335,12 @@ void e_edit(e_context* ctx, int c) {
 
 void e_initial(e_context* ctx, int c) {
   switch (c) {
-     case ':':
-       meta(ctx);
-       break;
+    case ':':
+      meta(ctx);
+      break;
+    case '/':
+      e_find(ctx);
+      break;
     case ARROW_UP:
     case ARROW_DOWN:
     case ARROW_RIGHT:
@@ -387,7 +402,7 @@ char* e_rows_to_str(e_context* ctx, int* len) {
 
 void e_save(e_context* ctx) {
   if (!ctx->filename) {
-    ctx->filename = e_prompt(ctx, "Save as: %s");
+    ctx->filename = e_prompt(ctx, "Save as: %s", NULL);
 
     if (!ctx->filename) {
       e_set_status_msg(ctx, "Aborted!");
@@ -562,7 +577,7 @@ void e_open(e_context* ctx, char* filename) {
 }
 
 
-char* e_prompt(e_context* ctx, const char* prompt) {
+char* e_prompt(e_context* ctx, const char* prompt, e_cb callback) {
   size_t bufsize = 128;
   char *buf = malloc(bufsize);
   size_t buflen = 0;
@@ -575,11 +590,13 @@ char* e_prompt(e_context* ctx, const char* prompt) {
       if (buflen) buf[--buflen] = '\0';
     } else if (c == '\x1b' || c == CTRL('c')) {
       e_set_status_msg(ctx, "");
+      if (callback) callback(ctx, buf, c);
       free(buf);
       return NULL;
     } else if (c == '\r') {
       if (buflen != 0) {
         e_set_status_msg(ctx, "");
+        if (callback) callback(ctx, buf, c);
         return buf;
       }
     } else if (!iscntrl(c) && c < 128) {
@@ -590,7 +607,59 @@ char* e_prompt(e_context* ctx, const char* prompt) {
       buf[buflen++] = c;
       buf[buflen] = '\0';
     }
+
+    if (callback) callback(ctx, buf, c);
   }
+}
+
+
+void e_find_cb(e_context* ctx, char* query, int key) {
+  if (key == '\r' || key == ESC) {
+    return;
+  }
+
+  int i;
+  regex_t re;
+  regmatch_t rem;
+
+  if (!query) return;
+
+  if (regcomp(&re, query, REG_EXTENDED)) {
+    e_set_status_msg(ctx, "Invalid regular expression.");
+    return;
+  }
+  for (i = 0; i < ctx->nrows; i++) {
+    e_row* row = &ctx->row[i];
+    int status = regexec(&re, row->render, (size_t) 1, &rem, 0);
+    if (!status) {
+      ctx->cy = i;
+      ctx->cx = e_rx_to_cx(row, (int) rem.rm_so);
+      ctx->roff = ctx->nrows;
+      e_set_status_msg(ctx, "Found ", rem.rm_so, rem.rm_eo);
+      break;
+    }
+  }
+  regfree(&re);
+  free(query);
+}
+
+
+void e_find(e_context* ctx) {
+  int cx = ctx->cx;
+  int cy = ctx->cy;
+  int coff = ctx->coff;
+  int roff = ctx->roff;
+
+  char* query = e_prompt(ctx, "Search:%s", e_find_cb);
+
+  if (query) {
+    free(query);
+    return;
+  }
+  ctx->cx = cx;
+  ctx->cy = cy;
+  ctx->coff = coff;
+  ctx->roff = roff;
 }
 
 
