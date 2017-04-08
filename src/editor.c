@@ -584,10 +584,12 @@ char* e_prompt(e_context* ctx, const char* prompt, e_cb callback) {
   char *buf = malloc(bufsize);
   size_t buflen = 0;
   buf[0] = '\0';
+
   while (1) {
     e_set_status_msg(ctx, prompt, buf);
     e_clear_screen(ctx);
     int c = e_read_key();
+
     if (c == DEL_KEY || c == CTRL('h') || c == BACKSPACE) {
       if (buflen) buf[--buflen] = '\0';
     } else if (c == '\x1b' || c == CTRL('c')) {
@@ -595,12 +597,10 @@ char* e_prompt(e_context* ctx, const char* prompt, e_cb callback) {
       if (callback) callback(ctx, buf, c);
       free(buf);
       return NULL;
-    } else if (c == '\r') {
-      if (buflen != 0) {
-        e_set_status_msg(ctx, "");
-        if (callback) callback(ctx, buf, c);
-        return buf;
-      }
+    } else if (c == '\r' && buflen) {
+      e_set_status_msg(ctx, "");
+      if (callback) callback(ctx, buf, c);
+      return buf;
     } else if (!iscntrl(c) && c < 128) {
       if (buflen == bufsize - 1) {
         bufsize *= 2;
@@ -616,11 +616,22 @@ char* e_prompt(e_context* ctx, const char* prompt, e_cb callback) {
 
 
 void e_find_cb(e_context* ctx, char* query, int key) {
-  if (key == '\r' || key == ESC) {
-    return;
+  static int prev = -1;
+  static signed char dir = 1;
+
+  if (key == ARROW_DOWN) {
+    dir = 1;
+  } else if (key == ARROW_UP) {
+    dir = -1;
+  } else {
+    prev = -1;
+    dir = 1;
   }
 
+  if (key == '\r' || key == ESC) return;
+
   int i;
+  int cur = prev;
   regex_t re;
   regmatch_t rem;
 
@@ -631,10 +642,14 @@ void e_find_cb(e_context* ctx, char* query, int key) {
     return;
   }
   for (i = 0; i < ctx->nrows; i++) {
+    cur += dir;
+    if (cur == -1) cur = ctx->nrows - 1;
+    else if (cur == ctx->nrows) cur = 0;
+
     e_row* row = &ctx->row[i];
-    int status = regexec(&re, row->render, (size_t) 1, &rem, 0);
-    if (!status) {
-      ctx->cy = i;
+    if (!regexec(&re, row->render, (size_t) 1, &rem, 0)) {
+      prev = cur;
+      ctx->cy = cur;
       ctx->cx = e_rx_to_cx(row, (int) rem.rm_so);
       ctx->roff = ctx->nrows;
       e_set_status_msg(ctx, "Found ", rem.rm_so, rem.rm_eo);
