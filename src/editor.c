@@ -60,10 +60,10 @@ void e_draw_rows(e_context* ctx, append_buf* ab) {
         if (len > ctx->cols) len = ctx->cols;
         int padding = (ctx->cols - len) / 2;
         while (padding--) ab_append(ab, " ", 1);
-        ab_append(ab, welcome, len);
+        color_append(NORMAL, ab, welcome, len);
       }
     } else {
-      ab_append(ab, "\x1b[K", 3);
+      ansi_append(ab, "K", 3);
       int len = ctx->row[filerow].rsize - ctx->coff;
       if (len < 0) len = 0;
       if (len > ctx->cols) len = ctx->cols;
@@ -76,14 +76,15 @@ void e_draw_rows(e_context* ctx, append_buf* ab) {
 
 void e_draw_status(e_context* ctx, append_buf* ab) {
   if (ctx->mode == EDIT) {
-    ab_append(ab, "\x1b[43m", 5);
+    color_append(YELLOW_BG, ab, "", 0);
     color_append(BLACK, ab, "EDIT mode ", 10);
   } else if (ctx->mode == INITIAL) {
-    ab_append(ab, "\x1b[44m", 5);
+    color_append(BLUE_BG, ab, "", 0);
     color_append(WHITE, ab, "INIT mode ", 10);
   }
 
-  ab_append(ab, "\x1b[47m ", 6);
+  color_append(NORMAL, ab, "", 0);
+  color_append(WHITE_BG, ab, " ", 1);
   char status[80];
   char rstatus[80];
   int len  = snprintf(status, sizeof(status), "%.20s - %d lines %s",
@@ -93,21 +94,21 @@ void e_draw_status(e_context* ctx, append_buf* ab) {
   color_append(BLUE, ab, status, len);
   len += 12;
 
-  ab_append(ab, "\x1b[47m ", 6);
   while (len < ctx->cols) {
     if (ctx->cols-len == rlen) {
-      color_append(BLUE, ab, rstatus, rlen);
+      ab_append(ab, rstatus, rlen);
       break;
     }
     ab_append(ab, " ", 1);
     len++;
   }
+  color_append(NORMAL, ab, "", 0);
   ab_append(ab, "\r\n", 2);
 }
 
 
 void e_draw_message(e_context* ctx, append_buf* ab) {
-  ab_append(ab, "\x1b[K", 3);
+  ansi_append(ab, "K", 1);
   int len = strlen(ctx->statusmsg);
   if (len > ctx->cols) len = ctx->cols;
   if (len && time(NULL) - ctx->statusmsg_time < 5) ab_append(ab, ctx->statusmsg, len);
@@ -166,18 +167,18 @@ void e_clear_screen(e_context* ctx) {
   e_scroll(ctx);
 
   append_buf ab = ABUF_INIT;
-  ab_append(&ab, "\x1b[?25l", 6);
-  ab_append(&ab, "\x1b[H", 3);
+  ansi_append(&ab, "?25l", 4);
+  ansi_append(&ab, "H", 1);
 
   e_draw_rows(ctx, &ab);
   e_draw_status(ctx, &ab);
   e_draw_message(ctx, &ab);
 
   char buf[32];
-  snprintf(buf, sizeof(buf), "\x1b[%d;%dH", ctx->cy-ctx->roff+1,
-                                            ctx->rx-ctx->coff+1);
-  ab_append(&ab, buf, strlen(buf));
-  ab_append(&ab, "\x1b[?25h", 6);
+  snprintf(buf, sizeof(buf), "%d;%dH", ctx->cy-ctx->roff+1,
+                                       ctx->rx-ctx->coff+1);
+  ansi_append(&ab, buf, strlen(buf));
+  ansi_append(&ab, "?25h", 4);
 
   write(STDOUT_FILENO, ab.b, ab.len);
   ab_free(&ab);

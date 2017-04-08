@@ -32,3 +32,4 @@ enum {
 };
 
 void color_append(int, append_buf*, const char*, int);
+void ansi_append(append_buf*, const char*, int);
