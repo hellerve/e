@@ -20,7 +20,7 @@ void enable_raw_mode(e_context* ctx) {
 }
 
 
-void e_die(const char *s) {
+void e_die(const char* s) {
   write(STDOUT_FILENO, "\x1b[2J", 4);
   write(STDOUT_FILENO, "\x1b[H", 3);
   perror(s);
@@ -275,34 +275,17 @@ int e_read_key() {
 }
 
 
-int e_read_meta_key(e_context* ctx) {
-  char c;
-  write(STDOUT_FILENO, "\x1b[999B", 6);
-  write(STDOUT_FILENO, "\x1b[K", 3);
-  disable_raw_mode(ctx);
-  write(STDOUT_FILENO, "META:", 5);
-  c = e_read_key();
-  enable_raw_mode(ctx);
-  return c;
-}
-
-
 void meta(e_context* ctx) {
-  char c = e_read_meta_key(ctx);
+  char* c = e_prompt(ctx, "Meta:%s");
 
-  switch (c) {
-    case 'q':
-      e_exit_prompt(ctx);
-      break;
-    case '!':
-      e_exit();
-    case 's':
-      e_save(ctx);
-      e_exit();
-    default:
-      e_set_status_msg(ctx, "Unknown meta command");
-  }
+  if (!strcmp(c, "q") || !strcmp(c, "quit")) e_exit_prompt(ctx);
+  else if (!strcmp(c, "!")) e_exit();
+  else if (!strcmp(c, "s") || !strcmp(c, "save")) { e_save(ctx); e_exit(); }
+  else e_set_status_msg(ctx, "Unknown meta command");
 }
+
+
+void e_insert_newline(e_context*);
 
 
 void e_edit(e_context* ctx, int c) {
@@ -321,6 +304,8 @@ void e_edit(e_context* ctx, int c) {
       ctx->mode = INITIAL;
       break;
     case '\r':
+    case '\n':
+      e_insert_newline(ctx);
       break;
     case BACKSPACE:
     case CTRL('h'):
@@ -401,7 +386,14 @@ char* e_rows_to_str(e_context* ctx, int* len) {
 }
 
 void e_save(e_context* ctx) {
-  if (ctx->filename == NULL) return;
+  if (!ctx->filename) {
+    ctx->filename = e_prompt(ctx, "Save as: %s");
+
+    if (!ctx->filename) {
+      e_set_status_msg(ctx, "Aborted!");
+      return;
+    }
+  }
 
   int len;
   char* buf = e_rows_to_str(ctx, &len);
@@ -445,6 +437,13 @@ void e_update_row(e_row* row) {
   row->rsize = i;
 }
 
+void e_row_append(e_row* row, char* s, size_t len) {
+  row->str = realloc(row->str, row->size+len+1);
+  memcpy(&row->str[row->size], s, len);
+  row->size += len;
+  row->str[row->size] = '\0';
+  e_update_row(row);
+}
 
 void e_row_insert_char(e_row* row, int at, int c) {
   if (at < 0 || at > row->size) at = row->size;
@@ -456,7 +455,7 @@ void e_row_insert_char(e_row* row, int at, int c) {
 }
 
 
-void e_row_del_char(e_row *row, int at) {
+void e_row_del_char(e_row* row, int at) {
   if (at < 0 || at >= row->size) return;
   memmove(&row->str[at], &row->str[at + 1], row->size - at);
   row->size--;
@@ -464,10 +463,27 @@ void e_row_del_char(e_row *row, int at) {
 }
 
 
-void e_append_row(e_context* ctx, char* s, size_t len) {
-  ctx->row = realloc(ctx->row, sizeof(e_row) * (ctx->rows + 1));
+void e_free_row(e_row* row) {
+  free(row->render);
+  free(row->str);
+}
 
-  int at = ctx->nrows;
+
+void e_del_row(e_context* ctx, int at) {
+  if (at < 0 || at >= ctx->nrows) return;
+  e_free_row(&ctx->row[at]);
+  memmove(&ctx->row[at], &ctx->row[at+1], sizeof(e_row) * (ctx->nrows-at-1));
+  ctx->nrows--;
+  ctx->dirty = 1;
+}
+
+
+void e_insert_row(e_context* ctx, int at, char* s, size_t len) {
+  if (at < 0 || at > ctx->nrows) return;
+
+  ctx->row = realloc(ctx->row, sizeof(e_row) * (ctx->rows + 1));
+  memmove(&ctx->row[at+1], &ctx->row[at], sizeof(e_row) * (ctx->nrows-at));
+
   ctx->row[at].size = len;
   ctx->row[at].str = malloc(len + 1);
   memcpy(ctx->row[at].str, s, len);
@@ -479,6 +495,12 @@ void e_append_row(e_context* ctx, char* s, size_t len) {
   ctx->dirty = 1;
 }
 
+
+void e_append_row(e_context* ctx, char* s, size_t len) {
+  e_insert_row(ctx, ctx->nrows, s, len);
+}
+
+
 void e_insert_char(e_context* ctx, int c) {
   if (ctx->cy == ctx->nrows) e_append_row(ctx, (char*) "", 0);
 
@@ -488,13 +510,36 @@ void e_insert_char(e_context* ctx, int c) {
 }
 
 
+void e_insert_newline(e_context* ctx) {
+  if (ctx->cx) {
+    e_row* row = &ctx->row[ctx->cy];
+    e_insert_row(ctx, ctx->cy+1, &row->str[ctx->cx], row->size-ctx->cx);
+    row = &ctx->row[ctx->cy];
+    row->size = ctx->cx;
+    row->str[row->size] = '\0';
+    e_update_row(row);
+  } else {
+    e_insert_row(ctx, ctx->cy, (char*) "", 0);
+  }
+  ctx->cy++;
+  ctx->cx = 0;
+}
+
+
 void e_del_char(e_context* ctx) {
   if (ctx->cy == ctx->nrows) return;
-  e_row *row = &ctx->row[ctx->cy];
+  if (!ctx->cx && !ctx->cy) return;
+
+  e_row* row = &ctx->row[ctx->cy];
   if (ctx->cx > 0) {
     e_row_del_char(row, --ctx->cx);
-    ctx->dirty = 1;
+  } else {
+    ctx->cy--;
+    ctx->cx = ctx->row[ctx->cy].size;
+    e_row_append(&ctx->row[ctx->cy], row->str, row->size);
+    e_del_row(ctx, ctx->cy+1);
   }
+  ctx->dirty = 1;
 }
 
 
@@ -514,6 +559,38 @@ void e_open(e_context* ctx, char* filename) {
   }
   free(line);
   fclose(fp);
+}
+
+
+char* e_prompt(e_context* ctx, const char* prompt) {
+  size_t bufsize = 128;
+  char *buf = malloc(bufsize);
+  size_t buflen = 0;
+  buf[0] = '\0';
+  while (1) {
+    e_set_status_msg(ctx, prompt, buf);
+    e_clear_screen(ctx);
+    int c = e_read_key();
+    if (c == DEL_KEY || c == CTRL('h') || c == BACKSPACE) {
+      if (buflen) buf[--buflen] = '\0';
+    } else if (c == '\x1b' || c == CTRL('c')) {
+      e_set_status_msg(ctx, "");
+      free(buf);
+      return NULL;
+    } else if (c == '\r') {
+      if (buflen != 0) {
+        e_set_status_msg(ctx, "");
+        return buf;
+      }
+    } else if (!iscntrl(c) && c < 128) {
+      if (buflen == bufsize - 1) {
+        bufsize *= 2;
+        buf = realloc(buf, bufsize);
+      }
+      buf[buflen++] = c;
+      buf[buflen] = '\0';
+    }
+  }
 }
 
 

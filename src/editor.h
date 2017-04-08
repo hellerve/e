@@ -78,5 +78,6 @@ void e_open(e_context*, char*);
 void e_insert_char(e_context*, int);
 void e_del_char(e_context*);
 void e_set_status_msg(e_context*, const char*, ...);
-void e_save(e_context* ctx);
+void e_save(e_context*);
+char* e_prompt(e_context*, const char*);
 e_context* e_setup();
