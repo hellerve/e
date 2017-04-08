@@ -640,7 +640,6 @@ void e_find_cb(e_context* ctx, char* query, int key) {
     }
   }
   regfree(&re);
-  free(query);
 }
 
 
