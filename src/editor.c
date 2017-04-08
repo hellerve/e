@@ -574,6 +574,8 @@ void e_open(e_context* ctx, char* filename) {
   }
   free(line);
   fclose(fp);
+
+  ctx->dirty = 0;
 }
 
 
