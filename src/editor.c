@@ -290,10 +290,25 @@ int e_read_key() {
 void meta(e_context* ctx) {
   char* c = e_prompt(ctx, "Meta:%s", NULL);
 
-  if (!strcmp(c, "q") || !strcmp(c, "quit")) e_exit_prompt(ctx);
-  else if (!strcmp(c, "!")) e_exit();
-  else if (!strcmp(c, "s") || !strcmp(c, "save")) { e_save(ctx); e_exit(); }
-  else e_set_status_msg(ctx, "Unknown meta command");
+  if (!c) return;
+
+  if (!strcmp(c, "q") || !strcmp(c, "quit")) {
+    free(c);
+    e_exit_prompt(ctx);
+  }
+  else if (!strcmp(c, "!")) {
+    free(c);
+    e_exit();
+  }
+  else if (!strcmp(c, "s") || !strcmp(c, "save")) {
+    free(c);
+    e_save(ctx);
+    e_exit();
+  }
+  else {
+    free(c);
+    e_set_status_msg(ctx, "Unknown meta command");
+  }
 }
 
 
@@ -496,7 +511,7 @@ void e_del_row(e_context* ctx, int at) {
 void e_insert_row(e_context* ctx, int at, char* s, size_t len) {
   if (at < 0 || at > ctx->nrows) return;
 
-  ctx->row = realloc(ctx->row, sizeof(e_row) * (ctx->rows + 1));
+  ctx->row = realloc(ctx->row, sizeof(e_row) * (ctx->nrows + 1));
   memmove(&ctx->row[at+1], &ctx->row[at], sizeof(e_row) * (ctx->nrows-at));
 
   ctx->row[at].size = len;
@@ -505,7 +520,7 @@ void e_insert_row(e_context* ctx, int at, char* s, size_t len) {
   ctx->row[at].str[len] = '\0';
   ctx->row[at].rsize = 0,
   ctx->row[at].render = NULL;
-  e_update_row(ctx->row+at);
+  e_update_row(&ctx->row[at]);
   ctx->nrows++;
   ctx->dirty = 1;
 }
@@ -569,7 +584,8 @@ void e_open(e_context* ctx, char* filename) {
   size_t linecap = 0;
   ssize_t len;
   while ((len = getline(&line, &linecap, fp)) != -1) {
-    if (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r')) len--;
+    if (len > 0 && (line[len-1] == '\n' || line[len-1] == '\r')) len--;
+
     e_append_row(ctx, line, len);
   }
   free(line);
@@ -683,8 +699,20 @@ void e_find(e_context* ctx) {
 e_context* GLOB;
 void exitf() {
   disable_raw_mode(GLOB);
+  e_context_free(GLOB);
 }
 
+
+void e_context_free(e_context* ctx) {
+  int i;
+  for (i = 0; i < ctx->nrows; i++) {
+    free(ctx->row[i].render);
+    free(ctx->row[i].str);
+  }
+  free(ctx->row);
+  free(ctx->filename);
+  free(ctx);
+}
 
 e_context*  e_setup() {
   e_context* ctx = malloc(sizeof(e_context));
@@ -706,5 +734,6 @@ e_context*  e_setup() {
   ctx->statusmsg[0] = '\0';
   ctx->statusmsg_time = 0;
   ctx->dirty = 0;
+  ctx->mode = INITIAL;
   return ctx;
 }
