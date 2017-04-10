@@ -380,6 +380,25 @@ void e_initial(e_context* ctx, int c) {
     case ' ':
       e_save(ctx);
       break;
+    case 'n':
+      e_insert_row(ctx, ++ctx->cy, (char*) "", 0);
+      ctx->mode = EDIT;
+      break;
+    case 'p':
+      e_insert_row(ctx, ctx->cy, (char*) "", 0);
+      ctx->mode = EDIT;
+      break;
+    case 'b':
+      ctx->cx = 0;
+      ctx->mode = EDIT;
+      break;
+    case 't':
+      ctx->cx = ctx->row[ctx->cy].rsize;
+      ctx->mode = EDIT;
+      break;
+    case 'r':
+      e_replace(ctx);
+      break;
   }
 }
 
@@ -538,6 +557,14 @@ void e_insert_char(e_context* ctx, int c) {
 }
 
 
+void e_insert_char_at(e_context* ctx, int c, int cx, int cy) {
+  if (cy == ctx->nrows) e_append_row(ctx, (char*) "", 0);
+
+  e_row_insert_char(&ctx->row[cy], cx, c);
+  ctx->dirty = 1;
+}
+
+
 void e_insert_newline(e_context* ctx) {
   if (ctx->cx) {
     e_row* row = &ctx->row[ctx->cy];
@@ -566,6 +593,23 @@ void e_del_char(e_context* ctx) {
     ctx->cx = ctx->row[ctx->cy].size;
     e_row_append(&ctx->row[ctx->cy], row->str, row->size);
     e_del_row(ctx, ctx->cy+1);
+  }
+  ctx->dirty = 1;
+}
+
+
+void e_del_char_at(e_context* ctx, int cx, int cy) {
+  if (ctx->cy == ctx->nrows) return;
+  if (!ctx->cx && !ctx->cy) return;
+
+  e_row* row = &ctx->row[cy];
+  if (cx > 0) {
+    e_row_del_char(row, cx);
+  } else {
+    cy--;
+    cx = ctx->row[cy].size;
+    e_row_append(&ctx->row[cy], row->str, row->size);
+    e_del_row(ctx, cy+1);
   }
   ctx->dirty = 1;
 }
@@ -666,7 +710,6 @@ void e_find_cb(e_context* ctx, char* query, int key) {
       ctx->cy = cur;
       ctx->cx = e_rx_to_cx(row, (int) rem.rm_so);
       ctx->roff = ctx->nrows;
-      e_set_status_msg(ctx, "Found ", rem.rm_so, rem.rm_eo);
       break;
     }
   }
@@ -692,6 +735,47 @@ void e_find(e_context* ctx) {
   ctx->roff = roff;
 }
 
+
+void e_replace(e_context* ctx) {
+  int cx = ctx->cx;
+  int cy = ctx->cy;
+  int coff = ctx->coff;
+  int roff = ctx->roff;
+
+  char* query = e_prompt(ctx, "Search:%s", e_find_cb);
+
+  if (!query) {
+    ctx->cx = cx;
+    ctx->cy = cy;
+    ctx->coff = coff;
+    ctx->roff = roff;
+    return;
+  }
+
+  int wherex = ctx->cx;
+  int wherey = ctx->cy;
+
+  char* replace = e_prompt(ctx, "Replace:%s", NULL);
+
+  if (!replace) {
+    free(query);
+    ctx->cx = cx;
+    ctx->cy = cy;
+    ctx->coff = coff;
+    ctx->roff = roff;
+    return;
+  }
+
+  int i;
+  for (i = 0; i < strlen(query); i++) e_del_char_at(ctx, wherex, wherey);
+  for (i = 0; i < strlen(replace); i++) {
+    e_insert_char_at(ctx, (int) replace[i], wherex+i, wherey);
+  }
+
+  e_set_status_msg(ctx, "Replaced '%s' with '%s'", query, replace);
+  free(query);
+  free(replace);
+}
 
 
 void e_context_free(e_context* ctx) {
