@@ -402,14 +402,20 @@ e_context* e_initial(e_context* ctx, int c) {
     case ' ':
       e_save(ctx);
       break;
-    case 'n':
-      e_insert_row(ctx, ++ctx->cy, (char*) "", 0);
-      ctx->mode = EDIT;
-      break;
-    case 'p':
-      e_insert_row(ctx, ctx->cy, (char*) "", 0);
-      ctx->mode = EDIT;
-      break;
+    case 'n': {
+      e_context* new = e_context_copy(ctx);
+      new->history = ctx;
+      e_insert_row(new, ++new->cy, (char*) "", 0);
+      new->mode = EDIT;
+      return new;
+    }
+    case 'p': {
+      e_context* new = e_context_copy(ctx);
+      new->history = ctx;
+      e_insert_row(new, new->cy, (char*) "", 0);
+      new->mode = EDIT;
+      return new;
+    }
     case 'b':
       ctx->cx = 0;
       ctx->mode = EDIT;
@@ -418,12 +424,18 @@ e_context* e_initial(e_context* ctx, int c) {
       ctx->cx = ctx->row[ctx->cy].rsize;
       ctx->mode = EDIT;
       break;
-    case 'r':
-      e_replace(ctx);
-      break;
-    case 'R':
-      e_replace_all(ctx);
-      break;
+    case 'r': {
+      e_context* new = e_context_copy(ctx);
+      new->history = ctx;
+      e_replace(new);
+      return new;
+    }
+    case 'R': {
+      e_context* new = e_context_copy(ctx);
+      new->history = ctx;
+      e_replace_all(new);
+      return new;
+    }
     case 'u': {
       if (ctx->history) {
         e_context* new = ctx->history;
