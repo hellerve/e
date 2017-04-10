@@ -712,7 +712,7 @@ void e_find_cb(e_context* ctx, char* query, int key) {
     if (cur == -1) cur = ctx->nrows - 1;
     else if (cur == ctx->nrows) cur = 0;
 
-    e_row* row = &ctx->row[i];
+    e_row* row = &ctx->row[cur];
     if (!regexec(&re, row->render, (size_t) 1, &rem, 0)) {
       prev = cur;
       ctx->cy = cur;
