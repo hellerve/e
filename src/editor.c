@@ -46,7 +46,7 @@ void e_draw_rows(e_context* ctx, append_buf* ab) {
   int h;
   int filerow;
 
-  for (h = 0; h < ctx->rows-1; h++) {
+  for (h = 0; h < ctx->rows; h++) {
     filerow = h + ctx->roff;
     if (h >= ctx->nrows) {
       color_append(BLUE, ab, "~\x1b[K", 4);
@@ -720,7 +720,7 @@ e_context*  e_setup() {
   ctx->filename = NULL;
   ctx->coff = 0;
   ctx->roff = 0;
-  ctx->rows -= 1;
+  ctx->rows -= 2;
   ctx->statusmsg[0] = '\0';
   ctx->statusmsg_time = 0;
   ctx->dirty = 0;
