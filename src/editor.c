@@ -321,7 +321,7 @@ void meta(e_context* ctx) {
 void e_insert_newline(e_context*);
 
 
-void e_edit(e_context* ctx, int c) {
+e_context* e_edit(e_context* ctx, int c) {
   switch (c) {
     case ARROW_UP:
     case ARROW_DOWN:
@@ -337,24 +337,35 @@ void e_edit(e_context* ctx, int c) {
       ctx->mode = INITIAL;
       break;
     case '\r':
-    case '\n':
-      e_insert_newline(ctx);
-      break;
+    case '\n': {
+      e_context* new = e_context_copy(ctx);
+      new->history = ctx;
+      e_insert_newline(new);
+      return new;
+    }
     case BACKSPACE:
     case CTRL('h'):
-    case DEL_KEY:
-      if (c == DEL_KEY) e_move_cursor(ctx, ARROW_RIGHT);
-      e_del_char(ctx);
-      break;
+    case DEL_KEY: {
+      e_context* new = e_context_copy(ctx);
+      new->history = ctx;
+      if (c == DEL_KEY) e_move_cursor(new, ARROW_RIGHT);
+      e_del_char(new);
+      return new;
+    }
     case CTRL('l'):
       break;
-    default:
-      e_insert_char(ctx, c);
+    default: {
+      e_context* new = e_context_copy(ctx);
+      new->history = ctx;
+      e_insert_char(new, c);
+      return new;
+    }
   }
+  return ctx;
 }
 
 
-void e_initial(e_context* ctx, int c) {
+e_context* e_initial(e_context* ctx, int c) {
   switch (c) {
     case ':':
       meta(ctx);
@@ -381,10 +392,13 @@ void e_initial(e_context* ctx, int c) {
       break;
     case BACKSPACE:
     case CTRL('h'):
-    case DEL_KEY:
-      if (c == DEL_KEY) e_move_cursor(ctx, ARROW_RIGHT);
-      e_del_char(ctx);
-      break;
+    case DEL_KEY: {
+      e_context* new = e_context_copy(ctx);
+      new->history = ctx;
+      if (c == DEL_KEY) e_move_cursor(new, ARROW_RIGHT);
+      e_del_char(new);
+      return new;
+    }
     case ' ':
       e_save(ctx);
       break;
@@ -407,20 +421,35 @@ void e_initial(e_context* ctx, int c) {
     case 'r':
       e_replace(ctx);
       break;
+    case 'u': {
+      if (ctx->history) {
+        e_context* new = ctx->history;
+        ctx->history = NULL;
+        e_context_free(ctx);
+        new->mode = INITIAL;
+        return new;
+      }
+      e_set_status_msg(ctx, "Already at oldest change.");
+      break;
+    }
   }
+  return ctx;
 }
 
 
-void e_process_key(e_context* ctx) {
-   int c = e_read_key();
+e_context* e_process_key(e_context* ctx) {
+  int c = e_read_key();
 
-   switch (ctx->mode) {
-      case EDIT:
-        e_edit(ctx, c);
-        break;
-      case INITIAL:
-        e_initial(ctx, c);
-   }
+  switch (ctx->mode) {
+     case EDIT:
+       ctx = e_edit(ctx, c);
+       break;
+     case INITIAL:
+       ctx = e_initial(ctx, c);
+       break;
+  }
+
+  return ctx;
 }
 
 
@@ -794,8 +823,61 @@ void e_context_free(e_context* ctx) {
   }
   free(ctx->row);
   free(ctx->filename);
+  if (ctx->history) e_context_free(ctx->history);
   free(ctx);
 }
+
+e_context* e_context_copy(e_context* ctx) {
+  e_context* new = malloc(sizeof(e_context));
+  new->orig = ctx->orig;
+  new->cols = ctx->cols;
+  new->rows = ctx->rows;
+  new->cx = ctx->cx;
+  new->rx = ctx->rx;
+  new->cy = ctx->cy;
+  new->mode = ctx->mode;
+  new->filename = strdup(ctx->filename);
+  new->nrows = ctx->nrows;
+
+  int i = 0;
+  new->row = malloc(sizeof(e_row) * new->nrows);
+  for (i = 0; i < new->nrows; i++) {
+    new->row[i].size = ctx->row[i].size;
+    new->row[i].str = strdup(ctx->row[i].str);
+    new->row[i].rsize = ctx->row[i].rsize;
+    new->row[i].render = strdup(ctx->row[i].render);
+  }
+
+  new->coff = ctx->coff;
+  new->roff = ctx->roff;
+  new->dirty = ctx->dirty;
+  strcpy(new->statusmsg, ctx->statusmsg);
+  new->statusmsg_time = ctx->statusmsg_time;
+
+  new->history = ctx->history;
+
+  return new;
+}
+
+
+long long e_context_size(e_context* ctx) {
+  int i;
+  long long size = sizeof(e_context);
+
+  if (ctx->filename) size += strlen(ctx->filename);
+
+  size += sizeof(e_row) * ctx->nrows;
+
+  for (i = 0; i < ctx->nrows; i++) {
+    size += strlen(ctx->row[i].render);
+    size += strlen(ctx->row[i].str);
+  }
+
+
+  if (ctx->history) size += e_context_size(ctx->history);
+  return size;
+}
+
 
 e_context*  e_setup() {
   e_context* ctx = malloc(sizeof(e_context));
@@ -817,5 +899,6 @@ e_context*  e_setup() {
   ctx->statusmsg_time = 0;
   ctx->dirty = 0;
   ctx->mode = INITIAL;
+  ctx->history = NULL;
   return ctx;
 }

@@ -23,7 +23,7 @@ int main(int argc, char** argv) {
 
   while(1) {
     e_clear_screen(GLOB);
-    e_process_key(GLOB);
+    GLOB = e_process_key(GLOB);
   }
   return 0;
 }
