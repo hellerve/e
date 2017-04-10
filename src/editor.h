@@ -17,6 +17,7 @@
 
 #include "colors.h"
 #include "buffer.h"
+#include "util.h"
 
 #define E_VERSION "0.0.1"
 #define E_TAB_WIDTH 4

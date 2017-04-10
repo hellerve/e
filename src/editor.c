@@ -303,6 +303,14 @@ void meta(e_context* ctx) {
     e_save(ctx);
     e_exit();
   }
+  else if (isnum(c)) {
+    int a = atoi(c);
+    free(c);
+    if (a > ctx->nrows) a = ctx->nrows;
+    if (a <= 0) a = 1;
+
+    ctx->cy = a-1;
+  }
   else {
     free(c);
     e_set_status_msg(ctx, "Unknown meta command");
