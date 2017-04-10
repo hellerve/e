@@ -86,3 +86,6 @@ char* e_prompt(e_context*, const char*, e_cb);
 void e_find(e_context*);
 void e_context_free(e_context*);
 e_context* e_setup();
+
+void enable_raw_mode(e_context*);
+void disable_raw_mode(e_context*);

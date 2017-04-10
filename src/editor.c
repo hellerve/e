@@ -21,16 +21,14 @@ void enable_raw_mode(e_context* ctx) {
 
 
 void e_die(const char* s) {
-  write(STDOUT_FILENO, "\x1b[2J", 4);
-  write(STDOUT_FILENO, "\x1b[H", 3);
+  write(STDOUT_FILENO, "\x1b[2J\x1b[?47l\x1b""8", 12);
   perror(s);
   exit(1);
 }
 
 
 void e_exit() {
-  write(STDOUT_FILENO, "\x1b[2J", 4);
-  write(STDOUT_FILENO, "\x1b[H", 3);
+  write(STDOUT_FILENO, "\x1b[2J\x1b[?47l\x1b""8", 12);
   exit(0);
 }
 
@@ -695,13 +693,6 @@ void e_find(e_context* ctx) {
 }
 
 
-// TODO: this is where I'd wish for currying
-e_context* GLOB;
-void exitf() {
-  disable_raw_mode(GLOB);
-  e_context_free(GLOB);
-}
-
 
 void e_context_free(e_context* ctx) {
   int i;
@@ -717,9 +708,8 @@ void e_context_free(e_context* ctx) {
 e_context*  e_setup() {
   e_context* ctx = malloc(sizeof(e_context));
   if (tcgetattr(STDIN_FILENO, &ctx->orig) == -1) e_die("tcgetattr");
-  GLOB = ctx;
-  atexit(exitf);
 
+  write(STDOUT_FILENO, "\x1b""7\x1b[?47h", 8);
   e_get_win_size(ctx);
   enable_raw_mode(ctx);
   ctx->rx = 0;
