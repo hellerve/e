@@ -15,8 +15,10 @@ int main(int argc, char** argv) {
 
   if (argc > 1) {
     e_open(GLOB, argv[1]);
-  } else {
-    e_insert_row(GLOB, 0, (char*) "", 0);
+  }
+
+  if (!GLOB->nrows) {
+    e_append_row(GLOB, (char*) "", 0);
   }
 
   e_set_status_msg(GLOB, "HELP: :q = quit");

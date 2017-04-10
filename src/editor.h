@@ -86,6 +86,7 @@ void e_insert_char_at(e_context*, int, int, int);
 void e_del_char(e_context*);
 void e_del_char_at(e_context*, int, int);
 void e_insert_row(e_context*, int, char*, size_t);
+void e_append_row(e_context*, char*, size_t);
 void e_del_row(e_context*, int);
 void e_set_status_msg(e_context*, const char*, ...);
 void e_save(e_context*);
