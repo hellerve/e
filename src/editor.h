@@ -92,6 +92,7 @@ void e_save(e_context*);
 char* e_prompt(e_context*, const char*, e_cb);
 void e_find(e_context*);
 void e_replace(e_context*);
+void e_replace_all(e_context*);
 long long e_context_size(e_context*);
 void e_context_free(e_context*);
 e_context* e_context_copy(e_context*);

@@ -421,6 +421,9 @@ e_context* e_initial(e_context* ctx, int c) {
     case 'r':
       e_replace(ctx);
       break;
+    case 'R':
+      e_replace_all(ctx);
+      break;
     case 'u': {
       if (ctx->history) {
         e_context* new = ctx->history;
@@ -770,6 +773,59 @@ void e_find(e_context* ctx) {
   ctx->cy = cy;
   ctx->coff = coff;
   ctx->roff = roff;
+}
+
+
+void e_replace_all(e_context* ctx) {
+  int cx = ctx->cx;
+  int cy = ctx->cy;
+  int coff = ctx->coff;
+  int roff = ctx->roff;
+
+  char* query = e_prompt(ctx, "Search:%s", e_find_cb);
+
+  if (!query) {
+    ctx->cx = cx;
+    ctx->cy = cy;
+    ctx->coff = coff;
+    ctx->roff = roff;
+    return;
+  }
+
+  char* replace = e_prompt(ctx, "Replace:%s", NULL);
+
+  if (!replace) {
+    free(query);
+    ctx->cx = cx;
+    ctx->cy = cy;
+    ctx->coff = coff;
+    ctx->roff = roff;
+    return;
+  }
+
+  int found = 0;
+  int i;
+  for (i = 0; i < ctx->nrows; i++) {
+    char* res;
+    e_row* row = &ctx->row[i];
+    res = strsub(row->str, query, replace);
+    if (res) {
+      free(row->str);
+      row->str = res;
+      row->size = strlen(res);
+      found += 1;
+    }
+    res = strsub(row->render, query, replace);
+    if (res) {
+      free(row->render);
+      row->render = res;
+      row->rsize = strlen(res);
+    }
+  }
+
+  e_set_status_msg(ctx, "Replaced '%s' with '%s' on %d lines", query, replace, found);
+  free(query);
+  free(replace);
 }
 
 
