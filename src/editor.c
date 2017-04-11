@@ -76,6 +76,7 @@ void e_draw_rows(e_context* ctx, append_buf* ab) {
         } else if (hl[i] == current_color) {
           ab_append(ab, &c[i], 1);
         } else {
+          color_append(NORMAL, ab, "", 0);
           int color = syntax_to_color(hl[i]);
           color_append(color, ab, &c[i], 1);
           current_color = color;
