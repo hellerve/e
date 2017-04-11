@@ -14,6 +14,12 @@ int isnum(char* str) {
   return 1;
 }
 
+
+int issep(char c) {
+  return isspace(c) || c == '\0' || strchr(",.()+-/*=~%<>[];", c) != NULL;
+}
+
+
 char *strsub(char* str, char *pat, char *sub) {
     char* res;
     char* ins;

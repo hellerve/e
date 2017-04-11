@@ -3,4 +3,5 @@
 #include <string.h>
 
 int isnum(char*);
+int issep(char);
 char* strsub(char*, char*, char*);

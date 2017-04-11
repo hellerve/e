@@ -31,5 +31,18 @@ enum {
   WHITE_BG = 47
 };
 
+enum {
+  HL_NORMAL=0,
+  HL_NUM,
+  HL_STRING,
+  HL_COMMENT,
+  HL_KEYWORD,
+  HL_TYPE,
+
+  HL_MATCH,
+};
+
+
 void color_append(int, append_buf*, const char*, int);
 void ansi_append(append_buf*, const char*, int);
+int syntax_to_color(char);

@@ -15,9 +15,9 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "colors.h"
 #include "buffer.h"
 #include "util.h"
+#include "syntax.h"
 
 #define E_VERSION "0.0.1"
 #define E_TAB_WIDTH 4
@@ -27,11 +27,14 @@
 #endif
 
 typedef struct {
+  int idx;
   int size;
   char* str;
 
   int rsize;
   char* render;
+  char* hl;
+  int open_pattern;
 } e_row;
 
 typedef struct e_context {
@@ -54,6 +57,9 @@ typedef struct e_context {
   time_t statusmsg_time;
 
   struct e_context* history;
+
+  syntax* stx;
+  syntax** stxes;
 } e_context;
 
 typedef void (*e_cb)(e_context*, char*, int);
@@ -96,6 +102,7 @@ void e_replace(e_context*);
 void e_replace_all(e_context*);
 long long e_context_size(e_context*);
 void e_context_free(e_context*);
+void e_set_highlighting(e_context*, syntax**);
 e_context* e_context_copy(e_context*);
 e_context* e_setup();
 
