@@ -38,6 +38,8 @@ enum {
   HL_COMMENT,
   HL_KEYWORD,
   HL_TYPE,
+  HL_PRAGMA,
+  HL_PREDEF,
 
   HL_MATCH,
 };
