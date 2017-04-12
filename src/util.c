@@ -20,6 +20,11 @@ int issep(char c) {
 }
 
 
+int isbin(char* data, size_t len) {
+  return memchr(data, '\0', len) != NULL;
+}
+
+
 char *strsub(char* str, char *pat, char *sub) {
     char* res;
     char* ins;

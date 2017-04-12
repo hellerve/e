@@ -71,8 +71,10 @@ void e_draw_rows(e_context* ctx, append_buf* ab) {
       char current_color = 0;
       for (i = 0; i < len; i++) {
         if (iscntrl(c[i])) {
-          char sym = (c[i] <= 26) ? '@' + c[i] : '?';
-          color_append(GREEN, ab, &sym, 1);
+          char sym[5];
+          int len = snprintf(sym, 5, "%x", c[i]);
+          color_append(GREEN, ab, sym, len);
+          color_append(NORMAL, ab, "", 0);
         } else if (hl[i] == current_color) {
           ab_append(ab, &c[i], 1);
         } else {
