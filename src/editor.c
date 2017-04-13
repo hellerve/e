@@ -419,6 +419,13 @@ e_context* e_initial(e_context* ctx, int c) {
       e_del_char(new);
       return new;
     }
+    case 'x': {
+      e_context* new = e_context_copy(ctx);
+      new->history = ctx;
+      new->cx++;
+      e_del_char(new);
+      return new;
+    }
     case ' ':
       e_save(ctx);
       break;
