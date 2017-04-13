@@ -1,58 +1,129 @@
 #include "syntax.h"
 
+int syntax_lookup_color(char* key) {
+  if (!strncmp(key, "number", 6)) return HL_NUM;
+  else if (!strncmp(key, "string", 6)) return HL_STRING;
+  else if (!strncmp(key, "string", 6)) return HL_STRING;
+  else if (!strncmp(key, "comment", 7)) return HL_COMMENT;
+  else if (!strncmp(key, "keyword", 7)) return HL_KEYWORD;
+  else if (!strncmp(key, "type", 4)) return HL_TYPE;
+  else if (!strncmp(key, "pragma", 6)) return HL_PRAGMA;
+  else if (!strncmp(key, "predefined", 10)) return HL_PREDEF;
+  else if (!strncmp(key, "match", 5)) return HL_MATCH;
+  return HL_NORMAL;
+}
+
+
+void syntax_read_extensions(syntax* c, FILE* f, char* line) {
+  int regl = 1;
+  size_t ln;
+  regex_t* reg = malloc(sizeof(regex_t));
+  int err;
+
+  regcomp(reg, line, REG_EXTENDED);
+
+  while (fpeek(f) == ' ' || fpeek(f) == '\t') {
+    fgets(line, MAX_LINE_WIDTH, f);
+    ln = strlen(line)-1;
+    line[ln] = '\0'; // replace newline
+    reg = realloc(reg, sizeof(regex_t) * ++regl);
+    err = regcomp(&reg[regl-1], strtriml(line), REG_EXTENDED);
+    if (err) exit(err);
+  }
+  c->matchlen = regl;
+  c->filematch = reg;
+}
+
+
+void syntax_read_pattern(syntax* c, FILE* f, char* key, char* value) {
+  pattern* pat = malloc(sizeof(pattern));
+  char line[MAX_LINE_WIDTH];
+  size_t ln;
+  int err;
+  key = strtok(key, "|");
+  char* no_sep = strtok(NULL, "|");
+  pat->color = syntax_lookup_color(key);
+  pat->needs_sep = no_sep && !strncmp(no_sep, "no_sep", 6);
+  pat->multiline = 0;
+  ln = strlen(value);
+  memmove(value+1, value, ln);
+  value[0] = '^';
+  err = regcomp(&pat->pattern, value, REG_EXTENDED);
+  if (err) exit(err);
+
+  if (fpeek(f) == ' ' || fpeek(f) == '\t') {
+    fgets(line, MAX_LINE_WIDTH, f);
+    char* l = strtriml(line);
+    ln = strlen(l)-1;
+    memmove(l+1, l, ln);
+    l[0] = '^';
+    err = regcomp(&pat->closing, line, REG_EXTENDED);
+    if (err) exit(err);
+    pat->multiline = 1;
+  }
+
+  c->npatterns++;
+  c->patterns = realloc(c->patterns, sizeof(pattern)*c->npatterns);
+}
+
+
+syntax* syntax_read_file(char* fname) {
+  FILE* f;
+  syntax* c;
+  char* key;
+  char* value;
+  char* line = malloc(MAX_LINE_WIDTH);
+  size_t ln;
+
+  f = fopen(fname, "r");
+
+  if (!f) return NULL;
+
+  c = malloc(sizeof(syntax));
+  c->patterns = NULL;
+  c->npatterns = 0;
+
+  while (fgets(line, MAX_LINE_WIDTH, f)) {
+    ln = strlen(line)-1;
+    line[ln] = '\0'; // replace newline
+    key = strtok(line, ":");
+    value = strtok(NULL, ":");
+    if (!strncmp(key, "displayname", 11)) {
+      c->ftype = strdup(strtriml(value));
+    } else if (!strncmp(key, "extensions", 10)) {
+      syntax_read_extensions(c, f, strtriml(value));
+    } else {
+      if (value) syntax_read_pattern(c, f, key, strtriml(value));
+    }
+  }
+
+  return c;
+}
+
+
 syntax** syntax_init(char* dir) {
-  regex_t* fmatch = malloc(sizeof(regex_t) * 4);
-  syntax** ret = calloc(2, sizeof(syntax*));
-  syntax* c = malloc(sizeof(syntax));
-  pattern* p = malloc(sizeof(pattern)*7);
+  int retl = 1;
+  DIR* dp = opendir(dir);
+  char fname[MAX_LINE_WIDTH];
+  struct dirent* ep;
+  syntax** ret = malloc(sizeof(syntax*));
+  syntax* c;
 
-  regcomp(&fmatch[0], ".*\\.c$", REG_EXTENDED);
-  regcomp(&fmatch[1], ".*\\.h$", REG_EXTENDED);
-  regcomp(&fmatch[2], ".*\\.cpp$", REG_EXTENDED);
-  regcomp(&fmatch[3], ".*\\.hpp$", REG_EXTENDED);
+  if (!dp) return NULL;
 
-  regcomp(&p->pattern, "^//.*$", REG_EXTENDED);
-  p->color = HL_COMMENT;
-  p->needs_sep = 0;
-  p->multiline = 0;
-  regcomp(&p[1].pattern, "^(restrict|switch|if|while|for|break|continue|return|else|try|catch|else|struct|union|class|typedef|static|enum|case|asm|default|delete|do|explicit|export|extern|inline|namespace|new|public|private|protected|sizeof|template|this|typedef|typeid|typename|using|virtual|friend|goto)", REG_EXTENDED);
-  p[1].color = HL_KEYWORD;
-  p[1].needs_sep = 1;
-  p[1].multiline = 0;
-  regcomp(&p[2].pattern, "^(auto|bool|char|const|double|float|inline|int|mutable|register|short|unsigned|volatile|void|int8_t|int16_t|int32_t|int64_t|uint8_t|uint16_t|uint32_t|uint64_t|size_t|ssize_t|time_t)", REG_EXTENDED);
-  p[2].color = HL_TYPE;
-  p[2].needs_sep = 1;
-  p[2].multiline = 0;
-  regcomp(&p[3].pattern, "^/\\*([^(\\*/)]*)?", REG_EXTENDED);
-  p[3].color = HL_COMMENT;
-  p[3].needs_sep = 0;
-  p[3].multiline = 1;
-  regcomp(&p[3].closing, "^(.*)?\\*/", REG_EXTENDED);
-  regcomp(&p[4].pattern, "^#(include|pragma|define|undef) .*$", REG_EXTENDED);
-  p[4].color = HL_PRAGMA;
-  p[4].needs_sep = 1;
-  p[4].multiline = 0;
-  regcomp(&p[5].pattern, "^(NULL|stdout|stderr)", REG_EXTENDED);
-  p[5].color = HL_PREDEF;
-  p[5].needs_sep = 1;
-  p[5].multiline = 0;
-  regcomp(&p[6].pattern, "^#(ifdef|ifndef|if) .*$", REG_EXTENDED);
-  p[6].color = HL_PRAGMA;
-  p[6].needs_sep = 1;
-  p[6].multiline = 1;
-  regcomp(&p[6].closing, "^#endif\\w*$", REG_EXTENDED);
-
-  c->ftype = (char*) "c";
-  c->matchlen = 4;
-  c->filematch = fmatch;
-  c->flags = HL_NUMS | HL_STRINGS | HL_COMMENTS;
-  c->npatterns = 7;
-  c->patterns = p;
-
-  ret[0] = c;
-  ret[1] = NULL;
+  while ((ep = readdir(dp))) {
+    if (!strcmpr(fname, (char*) ".stx")) continue;
+    snprintf(fname, sizeof(fname), "%s%s", dir, ep->d_name);
+    c = syntax_read_file(fname);
+    if (!c) continue;
+    ret = realloc(ret, sizeof(syntax*)*(retl-1));
+    ret[retl-1] = c;
+    retl++;
+  }
+  ret[retl-1] = NULL;
   return ret;
 }
+
 
 void syntax_free(syntax** stx) {
   int i = 0;

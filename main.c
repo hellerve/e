@@ -29,10 +29,10 @@ void exitf() {
 
 
 int main(int argc, char** argv) {
+  stx = syntax_init((char*) "./stx/");
   signal(SIGSEGV, handler);
   signal(SIGABRT, handler);
   GLOB = e_setup();
-  stx = syntax_init(NULL);
   atexit(exitf);
 
   e_set_highlighting(GLOB, stx);

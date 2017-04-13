@@ -20,6 +20,16 @@ int issep(char c) {
 }
 
 
+char fpeek(FILE *f) {
+    char c;
+
+    c = fgetc(f);
+    ungetc(c, f);
+
+    return c;
+}
+
+
 char *strsub(char* str, char *pat, char *sub) {
     char* res;
     char* ins;
@@ -54,4 +64,23 @@ char *strsub(char* str, char *pat, char *sub) {
     }
     strcpy(tmp, str);
     return res;
+}
+
+char* strtriml(char* str) {
+  while(isspace((unsigned char)*str)) str++;
+
+  return str;
+}
+
+int strcmpr(char* str, char* suffix) {
+    size_t strl;
+    size_t suffixl;
+
+    if (!str || !suffix) return 0;
+
+    strl = strlen(str);
+    suffixl = strlen(suffix);
+
+    if (suffixl > strl) return 0;
+    return strncmp(str+strl-suffixl, suffix, suffixl) == 0;
 }
