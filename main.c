@@ -29,7 +29,7 @@ void exitf() {
 
 
 int main(int argc, char** argv) {
-  stx = syntax_init((char*) "./stx/");
+  stx = syntax_init((char*) STXDIR);
   signal(SIGSEGV, handler);
   signal(SIGABRT, handler);
   GLOB = e_setup();
