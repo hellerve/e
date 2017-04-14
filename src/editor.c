@@ -701,9 +701,9 @@ void e_row_del_char(e_context* ctx, e_row* row, int at) {
 
 
 void e_free_row(e_row* row) {
-  //free(row->render);
-  //free(row->str);
-  //free(row->hl);
+  free(row->render);
+  free(row->str);
+  free(row->hl);
 }
 
 

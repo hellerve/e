@@ -24,7 +24,7 @@ void handler(int sig) {
 void exitf() {
   disable_raw_mode(GLOB);
   e_context_free(GLOB);
-  syntax_free(stx);
+  if (stx) syntax_free(stx);
 }
 
 

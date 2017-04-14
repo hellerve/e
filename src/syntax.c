@@ -97,6 +97,8 @@ syntax* syntax_read_file(char* fname) {
     }
   }
 
+  fclose(f);
+
   return c;
 }
 
@@ -112,14 +114,16 @@ syntax** syntax_init(char* dir) {
   if (!dp) return NULL;
 
   while ((ep = readdir(dp))) {
-    if (!strcmpr(fname, (char*) ".stx")) continue;
-    snprintf(fname, sizeof(fname), "%s%s", dir, ep->d_name);
+    if (!strcmpr(ep->d_name, (char*) ".stx")) continue;
+    snprintf(fname, sizeof(fname), "%s/%s", dir, ep->d_name);
     c = syntax_read_file(fname);
     if (!c) continue;
-    ret = realloc(ret, sizeof(syntax*)*(retl-1));
+    ret = realloc(ret, sizeof(syntax*)*retl);
     ret[retl-1] = c;
     retl++;
   }
+
+  closedir(dp);
   ret[retl-1] = NULL;
   return ret;
 }
@@ -131,12 +135,18 @@ void syntax_free(syntax** stx) {
   while (stx[i]) {
     syntax* s = stx[i];
 
+    free(s->ftype);
+
     for (j = 0; j < s->matchlen; j++) regfree(&s->filematch[j]);
 
-    for (j = 0; j < s->npatterns; j++) regfree(&s->patterns[j].pattern);
+    for (j = 0; j < s->npatterns; j++) {
+      regfree(&s->patterns[j].pattern);
+      if (s->patterns[j].multiline) regfree(&s->patterns[j].closing);
+    }
 
     free(s);
 
     i++;
   }
+  free(stx);
 }
