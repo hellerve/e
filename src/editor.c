@@ -49,7 +49,7 @@ void e_draw_rows(e_context* ctx, append_buf* ab) {
 
   for (h = 0; h < ctx->rows; h++) {
     filerow = h + ctx->roff;
-    if (h >= ctx->nrows) {
+    if (filerow >= ctx->nrows) {
       color_append(BLUE, ab, "~\x1b[K", 4);
       if (h == ctx->rows / 3 && !ctx->nrows) {
         char welcome[80];
