@@ -585,34 +585,30 @@ void e_update_hl(e_context* ctx, e_row* row) {
     char c = row->render[i];
     char prev = (i>0) ? row->hl[i-1] : HL_NORMAL;
 
-    if (ctx->stx->flags & HL_STRINGS) {
-      if (ins) {
-        row->hl[i] = HL_STRING;
-        if (c== '\\' && row->rsize > i+1) {
-          row->hl[i+1] = HL_STRING;
-          i += 2;
-          continue;
-        }
-        if (c == ins) ins = 0;
-        i++;
-        prev_sep = 1;
-        continue;
-      } else if (c == '"' || c == '\'') {
-        ins = c;
-        row->hl[i] = HL_STRING;
-        i++;
+    if (ins) {
+      row->hl[i] = HL_STRING;
+      if (c== '\\' && row->rsize > i+1) {
+        row->hl[i+1] = HL_STRING;
+        i += 2;
         continue;
       }
+      if (c == ins) ins = 0;
+      i++;
+      prev_sep = 1;
+      continue;
+    } else if (c == '"' || c == '\'') {
+      ins = c;
+      row->hl[i] = HL_STRING;
+      i++;
+      continue;
     }
 
-    if (ctx->stx->flags & HL_NUMS) {
-      if ((isdigit(c) && (prev_sep || prev == HL_NUM)) ||
-          (c == '.' && prev == HL_NUM)) {
-        row->hl[i] = HL_NUM;
-        i++;
-        prev_sep = 0;
-        continue;
-      }
+    if ((isdigit(c) && (prev_sep || prev == HL_NUM)) ||
+        (c == '.' && prev == HL_NUM)) {
+      row->hl[i] = HL_NUM;
+      i++;
+      prev_sep = 0;
+      continue;
     }
 
     regmatch_t rem;
@@ -1140,11 +1136,11 @@ void e_set_highlighting(e_context* ctx, syntax** stx) {
       if (!regexec(&s->filematch[j], ctx->filename, 0, NULL, 0)) {
         ctx->stx = s;
         for (k = 0; k < ctx->nrows; k++) e_update_hl(ctx, &ctx->row[0]);
-      return;
+        return;
+      }
     }
+    i++;
   }
-  i++;
-}
 }
 
 

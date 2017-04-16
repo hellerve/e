@@ -6,7 +6,8 @@ e_context* GLOB;
 syntax** stx;
 
 
-// This does not free, because after a segfault we shouldn't be messing with memory
+// This does not free.
+// After a segfault we shouldn't be messing with memory
 void handler(int sig) {
   disable_raw_mode(GLOB);
   void *array[10];
@@ -15,7 +16,7 @@ void handler(int sig) {
   size = backtrace(array, 10);
 
   fputs("e has crashed. If you want to file a bug report, please attach the following:\n", stderr);
-  fprintf(stderr, "Error: signal %d:\n", sig);
+  fprintf(stderr, "Signal %d:\n", sig);
   backtrace_symbols_fd(array, size, STDERR_FILENO);
   exit(0);
 }
@@ -30,9 +31,10 @@ void exitf() {
 
 int main(int argc, char** argv) {
   stx = syntax_init((char*) STXDIR);
+  GLOB = e_setup();
+
   signal(SIGSEGV, handler);
   signal(SIGABRT, handler);
-  GLOB = e_setup();
   atexit(exitf);
 
   e_set_highlighting(GLOB, stx);
@@ -43,6 +45,7 @@ int main(int argc, char** argv) {
 
   if (!GLOB->nrows) {
     e_append_row(GLOB, (char*) "", 0);
+    GLOB->dirty = 0;
   }
 
   e_set_status_msg(GLOB, "HELP: :q = quit");

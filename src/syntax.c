@@ -43,7 +43,7 @@ void syntax_read_pattern(syntax* c, FILE* f, char* key, char* value) {
   key = strtok(key, "|");
   char* no_sep = strtok(NULL, "|");
   pat->color = syntax_lookup_color(key);
-  pat->needs_sep = no_sep && !strncmp(no_sep, "no_sep", 6);
+  pat->needs_sep = !(no_sep && !strncmp(no_sep, "no_sep", 6));
   pat->multiline = 0;
   ln = strlen(value);
   memmove(value+1, value, ln);
@@ -64,6 +64,8 @@ void syntax_read_pattern(syntax* c, FILE* f, char* key, char* value) {
 
   c->npatterns++;
   c->patterns = realloc(c->patterns, sizeof(pattern)*c->npatterns);
+  memmove(&c->patterns[c->npatterns-1], pat, sizeof(pattern));
+  free(pat);
 }
 
 
@@ -98,6 +100,7 @@ syntax* syntax_read_file(char* fname) {
   }
 
   fclose(f);
+  free(line);
 
   return c;
 }
@@ -124,6 +127,7 @@ syntax** syntax_init(char* dir) {
   }
 
   closedir(dp);
+  ret = realloc(ret, sizeof(syntax*)*retl);
   ret[retl-1] = NULL;
   return ret;
 }
@@ -138,11 +142,13 @@ void syntax_free(syntax** stx) {
     free(s->ftype);
 
     for (j = 0; j < s->matchlen; j++) regfree(&s->filematch[j]);
+    free(s->filematch);
 
     for (j = 0; j < s->npatterns; j++) {
       regfree(&s->patterns[j].pattern);
       if (s->patterns[j].multiline) regfree(&s->patterns[j].closing);
     }
+    free(s->patterns);
 
     free(s);
 

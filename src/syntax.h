@@ -5,9 +5,6 @@
 #include "colors.h"
 #include "util.h"
 
-#define HL_NUMS (1<<0)
-#define HL_STRINGS (1<<1)
-
 #define MAX_LINE_WIDTH 512
 
 typedef struct pattern {
@@ -22,7 +19,6 @@ typedef struct syntax {
   char* ftype;
   int matchlen;
   regex_t* filematch;
-  int flags;
   int npatterns;
   pattern* patterns;
 } syntax;
