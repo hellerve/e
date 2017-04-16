@@ -6,6 +6,8 @@ swath of the code is similar.
 
 It's in alpha, but I use it occasionally. Might unexpectedly break.
 
+[![asciicast](https://asciinema.org/a/e164s5tnu3okht44go6uhyju4.png)](https://asciinema.org/a/e164s5tnu3okht44go6uhyju4)
+
 ## Features
 
 - Incremental search (and replace)
