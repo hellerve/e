@@ -15,7 +15,7 @@ It's in alpha, but I use it occasionally. Might unexpectedly break.
 - Extensible syntax highlighting
 - No global state in the library part (just in `main.c`)
 - Can be used as a library
-- Ships with syntax highlighting for C/CPP (stable) and Markdown (experimental)
+- Ships with syntax highlighting for C/C++ (stable) and Markdown (experimental)
 
 ## Installation
 
@@ -33,19 +33,22 @@ such as saving the file, searching, and replacing.
 
 ### init mode mnemonics
 
-Use `wasd` or the arrow keys for movement. Editing (backspace etc.) works normally.
+Use `wasd` or the arrow keys for movement. Editing (backspace, etc.) works normally.
 
 - `n`: insert a line below the cursor and start editing (*n*ext) 
 - `p`: insert a line above the cursor and start editing (*p*revious)
 - `b`: jump to the *b*eginning of the line and start editing
 - `t`: jump to the end of the line and start editing (*t*erminus)
 - `h`: *h*ide a line (delete it)
-- Space: Quick save (might be prompted for a file name)
+- `/`: incremental highlighted search
+- `r`: search and replace first occurrence
+- `R`: search and replace all occurrences
+- Space: quick save (might be prompted for a file name)
 
 In meta mode (reachable by pressing the colon character `:`), there are
 the following commands:
 
-- `s`: save and quit
+- `s`: save and quit (might be prompted for a file name)
 - `q`: exit (will abort if the file has unsaved content)
 - `!`: force exit
 - Number `n`: jump to line `n`
@@ -80,7 +83,7 @@ is a list of regexes to match the filenames. Highlighting keys are `comment`,
 `|no_sep`, the user signals to `e` that no separator is needed, i.e. highlighting
 works even if the matched string is part of a longer word. The values are regexes.
 
-If we provide a second regex (must by divided by a newline), we assume that everything
+If you provide a second regex (must by divided by a newline), `e` assumes that everything
 between the two matches should be colored (useful for e.g. multiline comments).
 
 That's it!
