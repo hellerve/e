@@ -1,0 +1,7 @@
+displayname: python
+extensions: .*\.py
+pragma: (from|import)
+keyword: (as|yield|return|for|if|while|def)
+type: (class|int|tuple|id|float|str|unicode|list|dict)
+comment: #.*$
+type: @[^\(]*
