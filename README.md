@@ -17,7 +17,11 @@ It's in alpha, but I use it occasionally. Might unexpectedly break.
 - Extensible syntax highlighting
 - No global state in the library part (just in `main.c`)
 - Can be used as a library
-- Ships with syntax highlighting for C/C++ (stable), Python (experimental) and Markdown (experimental)
+- Ships with syntax highlighting for
+  - C/C++ (stable)
+  - Python (experimental)
+  - JavaScript (experimental)
+  - Markdown (unfinished)
 
 ## Installation
 
