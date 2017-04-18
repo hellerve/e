@@ -50,62 +50,62 @@ void e_draw_rows(e_context* ctx, append_buf* ab) {
   for (h = 0; h < ctx->rows; h++) {
     filerow = h + ctx->roff;
     if (filerow >= ctx->nrows) {
-      color_append(BLUE, ab, "~\x1b[K", 4);
+      color_append(BLUE, ab, L"~\x1b[K", 4);
       if (h == ctx->rows / 3 && !ctx->nrows) {
-        char welcome[80];
-        int len = snprintf(welcome, sizeof(welcome),
-                           "E -- braindead editing -- version %s",
+        wchar_t welcome[80];
+        int len = swprintf(welcome, sizeof(welcome),
+                           L"E -- braindead editing -- version %s",
                            E_VERSION);
         if (len > ctx->cols) len = ctx->cols;
         int padding = (ctx->cols - len) / 2;
-        while (padding--) ab_append(ab, " ", 1);
+        while (padding--) ab_append(ab, L" ", 1);
         color_append(NORMAL, ab, welcome, len);
       }
     } else {
-      ansi_append(ab, "K", 3);
+      ansi_append(ab, L"K", 1);
       int len = ctx->row[filerow].rsize - ctx->coff;
       if (len < 0) len = 0;
       if (len > ctx->cols) len = ctx->cols;
-      char* c = &ctx->row[filerow].render[ctx->coff];
+      wchar_t* c = &ctx->row[filerow].render[ctx->coff];
       char* hl = &ctx->row[filerow].hl[ctx->coff];
       char current_color = 0;
       for (i = 0; i < len; i++) {
         if (iscntrl(c[i])) {
-          char sym = (c[i] <= 26) ? '@' + c[i] : '?';
+          wchar_t sym = (c[i] <= 26) ? L'@' + c[i] : '?';
           color_append(GREEN, ab, &sym, 1);
         } else if (hl[i] == current_color) {
           ab_append(ab, &c[i], 1);
         } else {
-          color_append(NORMAL, ab, "", 0);
+          color_append(NORMAL, ab, L"", 0);
           int color = syntax_to_color(hl[i]);
           color_append(color, ab, &c[i], 1);
           current_color = color;
         }
       }
-      color_append(NORMAL, ab, "", 0);
+      color_append(NORMAL, ab, L"", 0);
     }
-    ab_append(ab, "\r\n", 2);
+    ab_append(ab, L"\r\n", 2);
   }
 }
 
 
 void e_draw_status(e_context* ctx, append_buf* ab) {
   if (ctx->mode == EDIT) {
-    color_append(YELLOW_BG, ab, "", 0);
-    color_append(BLACK, ab, "EDIT mode ", 10);
+    color_append(YELLOW_BG, ab, L"", 0);
+    color_append(BLACK, ab, L"EDIT mode ", 10);
   } else if (ctx->mode == INITIAL) {
-    color_append(BLUE_BG, ab, "", 0);
-    color_append(WHITE, ab, "INIT mode ", 10);
+    color_append(BLUE_BG, ab, L"", 0);
+    color_append(WHITE, ab, L"INIT mode ", 10);
   }
 
-  color_append(BLACK_BG, ab, " ", 1);
-  color_append(WHITE, ab, "", 0);
+  color_append(BLACK_BG, ab, L" ", 1);
+  color_append(WHITE, ab, L"", 0);
   char status[100];
   char rstatus[100];
-  int len  = snprintf(status, sizeof(status), "%.40s - %d lines %s",
+  int len  = swprintf(status, sizeof(status), L"%.40s - %d lines %s",
                       ctx->filename ? ctx->filename : "[No Name]", ctx->nrows,
                       ctx->dirty ? "[UNSAVED]" : "");
-  int rlen = snprintf(rstatus, sizeof(rstatus), "%s  |  %d/%d  %d ",
+  int rlen = swprintf(rstatus, sizeof(rstatus), L"%s  |  %d/%d  %d ",
                       ctx->stx ? ctx->stx->ftype : "unknown filetype",
                       ctx->cy+1, ctx->nrows, ctx->cx+1);
   color_append(WHITE, ab, status, len);
@@ -113,23 +113,28 @@ void e_draw_status(e_context* ctx, append_buf* ab) {
 
   while (len < ctx->cols) {
     if (ctx->cols-len == rlen) {
-      color_append(YELLOW_BG, ab, " ", 1);
+      color_append(YELLOW_BG, ab, L" ", 1);
       color_append(BLACK, ab, rstatus, rlen);
       break;
     }
-    ab_append(ab, " ", 1);
+    ab_append(ab, L" ", 1);
     len++;
   }
-  color_append(NORMAL, ab, "", 0);
-  ab_append(ab, "\r\n", 2);
+  color_append(NORMAL, ab, L"", 0);
+  ab_append(ab, L"\r\n", 2);
 }
 
 
 void e_draw_message(e_context* ctx, append_buf* ab) {
-  ansi_append(ab, "K", 1);
+  ansi_append(ab, L"K", 1);
   int len = strlen(ctx->statusmsg);
   if (len > ctx->cols) len = ctx->cols;
-  if (len && time(NULL) - ctx->statusmsg_time < 5) ab_append(ab, ctx->statusmsg, len);
+  if (len && time(NULL) - ctx->statusmsg_time < 5) {
+    wchar_t* msg = malloc(strlen(ctx->statusmsg)*sizeof(wchar_t));
+    mbstowcs(msg, ctx->statusmsg, strlen(ctx->statusmsg));
+    ab_append(ab, msg, len);
+    free(msg);
+  }
 }
 
 
@@ -197,18 +202,18 @@ void e_clear_screen(e_context* ctx) {
   e_scroll(ctx);
 
   append_buf ab = ABUF_INIT;
-  ansi_append(&ab, "?25l", 4);
-  ansi_append(&ab, "H", 1);
+  ansi_append(&ab, L"?25l", 4);
+  ansi_append(&ab, L"H", 1);
 
   e_draw_rows(ctx, &ab);
   e_draw_status(ctx, &ab);
   e_draw_message(ctx, &ab);
 
-  char buf[32];
-  snprintf(buf, sizeof(buf), "%d;%dH", ctx->cy-ctx->roff+1,
+  wchar_t buf[32];
+  swprintf(buf, sizeof(buf), L"%d;%dH", ctx->cy-ctx->roff+1,
                                        ctx->rx-ctx->coff+1);
-  ansi_append(&ab, buf, strlen(buf));
-  ansi_append(&ab, "?25h", 4);
+  ansi_append(&ab, buf, wcslen(buf));
+  ansi_append(&ab, L"?25h", 4);
 
   write(STDOUT_FILENO, ab.b, ab.len);
   ab_free(&ab);
@@ -259,7 +264,7 @@ void e_move_cursor(e_context* ctx, int c) {
 
 int e_read_key() {
   int nread;
-  char c;
+  wchar_t c;
   while ((nread = read(STDIN_FILENO, &c, 1)) != 1) {
     if (nread == -1 && errno != EAGAIN) e_die("read");
   }
@@ -439,7 +444,7 @@ e_context* e_initial(e_context* ctx, int c) {
     case 'n': {
       e_context* new = e_context_copy(ctx);
       new->history = ctx;
-      e_insert_row(new, ++new->cy, (char*) "", 0);
+      e_insert_row(new, ++new->cy, (wchar_t*) "", 0);
       new->cx = 0;
       new->rx = 0;
       new->mode = EDIT;
@@ -448,7 +453,7 @@ e_context* e_initial(e_context* ctx, int c) {
     case 'p': {
       e_context* new = e_context_copy(ctx);
       new->history = ctx;
-      e_insert_row(new, new->cy, (char*) "", 0);
+      e_insert_row(new, new->cy, (wchar_t*) "", 0);
       new->cx = 0;
       new->rx = 0;
       new->mode = EDIT;
@@ -529,13 +534,13 @@ e_context* e_process_key(e_context* ctx) {
 }
 
 
-char* e_rows_to_str(e_context* ctx, int* len) {
+wchar_t* e_rows_to_str(e_context* ctx, int* len) {
   int total = 0;
   int j;
   for (j = 0; j < ctx->nrows; j++) total += ctx->row[j].size + 1;
   *len = total;
-  char* buf = malloc(total);
-  char* p = buf;
+  wchar_t* buf = malloc(total*sizeof(wchar_t));
+  wchar_t* p = buf;
   for (j = 0; j < ctx->nrows; j++) {
     memcpy(p, ctx->row[j].str, ctx->row[j].size);
     p += ctx->row[j].size;
@@ -558,7 +563,7 @@ void e_save(e_context* ctx) {
   }
 
   int len;
-  char* buf = e_rows_to_str(ctx, &len);
+  wchar_t* buf = e_rows_to_str(ctx, &len);
 
   int fd = open(ctx->filename, O_RDWR | O_CREAT, 0644);
   if (fd == -1) {
@@ -590,13 +595,16 @@ void e_update_hl(e_context* ctx, e_row* row) {
 
   if (!ctx->stx) return;
 
+  char* match = malloc(row->rsize*sizeof(wchar_t));
+  wcstombs(match, row->render, row->rsize);
+
   if (open_pattern > -1) {
     pattern pat = ctx->stx->patterns[open_pattern];
     regmatch_t rem;
-    if (regexec(&pat.closing, row->render, (size_t) 1, &rem, 0)) {
+    if (regexec(&pat.closing, match, (size_t) 1, &rem, 0)) {
       memset(row->hl, pat.color, row->rsize);
       row->open_pattern = open_pattern;
-      return;
+      goto cont;
     } else {
       int len = rem.rm_eo;
       for (k = 0; k < len; k++) row->hl[k] = pat.color;
@@ -606,7 +614,7 @@ void e_update_hl(e_context* ctx, e_row* row) {
   }
 
   while (i < row->rsize) {
-    char c = row->render[i];
+    wchar_t c = row->render[i];
     char prev = (i>0) ? row->hl[i-1] : HL_NORMAL;
 
     if (ins) {
@@ -639,13 +647,13 @@ void e_update_hl(e_context* ctx, e_row* row) {
     for (j = 0; j < ctx->stx->npatterns; j++) {
       pattern pat = ctx->stx->patterns[j];
       if ((!prev_sep && pat.needs_sep)) continue;
-      if (!regexec(&pat.pattern, row->render+i, (size_t) 1, &rem, 0)) {
+      if (!regexec(&pat.pattern, match+i, (size_t) 1, &rem, 0)) {
         int len = rem.rm_eo - rem.rm_so;
         if (pat.needs_sep && row->rsize > i+len && !issep(row->render[i+len])) continue;
         for (k = i; k < i+len; k++) row->hl[k] = pat.color;
         i += len;
         if (pat.multiline) {
-          if(regexec(&pat.closing, row->render+i, (size_t) 1, &rem, 0)) {
+          if(regexec(&pat.closing, match+i, (size_t) 1, &rem, 0)) {
             row->open_pattern = j;
           } else {
             int len = rem.rm_eo - rem.rm_so;
@@ -659,8 +667,7 @@ void e_update_hl(e_context* ctx, e_row* row) {
 
     prev_sep = issep(c);
     i++;
-    // this acts as a nested continue
-cont: (void)0;
+cont: free(match);
   }
 }
 
@@ -695,9 +702,9 @@ void e_update_row(e_context* ctx, e_row* row) {
   }
 }
 
-void e_row_append(e_context* ctx, e_row* row, char* s, size_t len) {
-  row->str = realloc(row->str, row->size+len+1);
-  memcpy(&row->str[row->size], s, len);
+void e_row_append(e_context* ctx, e_row* row, wchar_t* s, size_t len) {
+  row->str = realloc(row->str, (row->size+len+1)*sizeof(wchar_t));
+  memcpy(&row->str[row->size], s, len*sizeof(wchar_t));
   row->size += len;
   row->str[row->size] = '\0';
   e_update_row(ctx, row);
@@ -705,7 +712,7 @@ void e_row_append(e_context* ctx, e_row* row, char* s, size_t len) {
 
 void e_row_insert_char(e_context* ctx, e_row* row, int at, int c) {
   if (at < 0 || at > row->size) at = row->size;
-  row->str = realloc(row->str, row->size+2);
+  row->str = realloc(row->str, row->size+sizeof(wchar_t));
   memmove(&row->str[at+1], &row->str[at], row->size-at+1);
   row->size++;
   row->str[at] = c;
@@ -746,7 +753,7 @@ void e_del_row(e_context* ctx, int at) {
 }
 
 
-void e_insert_row(e_context* ctx, int at, char* s, size_t len) {
+void e_insert_row(e_context* ctx, int at, wchar_t* s, size_t len) {
   int i;
   if (at < 0 || at > ctx->nrows) return;
 
@@ -769,13 +776,13 @@ void e_insert_row(e_context* ctx, int at, char* s, size_t len) {
 }
 
 
-void e_append_row(e_context* ctx, char* s, size_t len) {
+void e_append_row(e_context* ctx, wchar_t* s, size_t len) {
   e_insert_row(ctx, ctx->nrows, s, len);
 }
 
 
 void e_insert_char(e_context* ctx, int c) {
-  if (ctx->cy == ctx->nrows) e_append_row(ctx, (char*) "", 0);
+  if (ctx->cy == ctx->nrows) e_append_row(ctx, (wchar_t*) "", 0);
 
   e_row_insert_char(ctx, &ctx->row[ctx->cy], ctx->cx, c);
   ctx->cx++;
@@ -784,7 +791,7 @@ void e_insert_char(e_context* ctx, int c) {
 
 
 void e_insert_char_at(e_context* ctx, int c, int cx, int cy) {
-  if (cy == ctx->nrows) e_append_row(ctx, (char*) "", 0);
+  if (cy == ctx->nrows) e_append_row(ctx, (wchar_t*) "", 0);
 
   e_row_insert_char(ctx, &ctx->row[cy], cx, c);
   ctx->dirty = 1;
@@ -800,7 +807,7 @@ void e_insert_newline(e_context* ctx) {
     row->str[row->size] = '\0';
     e_update_row(ctx, row);
   } else {
-    e_insert_row(ctx, ctx->cy, (char*) "", 0);
+    e_insert_row(ctx, ctx->cy, (wchar_t*) "", 0);
   }
   ctx->cy++;
   ctx->cx = 0;
@@ -855,8 +862,10 @@ void e_open(e_context* ctx, char* filename) {
   ssize_t len;
   while ((len = getline(&line, &linecap, fp)) != -1) {
     if (len > 0 && (line[len-1] == '\n' || line[len-1] == '\r')) len--;
-
-    e_append_row(ctx, line, len);
+    wchar_t* l = malloc(strlen(line)*sizeof(wchar_t));
+    mbstowcs(l, line, strlen(line));
+    e_append_row(ctx, l, len);
+    free(l);
   }
   free(line);
   fclose(fp);
@@ -867,7 +876,7 @@ void e_open(e_context* ctx, char* filename) {
 
 char* e_prompt(e_context* ctx, const char* prompt, e_cb callback) {
   size_t bufsize = 128;
-  char *buf = malloc(bufsize);
+  char* buf = malloc(bufsize*sizeof(buf));
   size_t buflen = 0;
   buf[0] = '\0';
 
@@ -942,7 +951,8 @@ void e_find_cb(e_context* ctx, char* query, int key) {
     else if (cur == ctx->nrows) cur = 0;
 
     e_row* row = &ctx->row[cur];
-    if (!regexec(&re, row->render, (size_t) 1, &rem, 0)) {
+    char* find = malloc(row->rsize*sizeof(wchar_t));
+    if (!regexec(&re, find, (size_t) 1, &rem, 0)) {
       prev = cur;
       ctx->cy = cur;
       ctx->cx = e_rx_to_cx(row, (int) rem.rm_so);
@@ -954,6 +964,7 @@ void e_find_cb(e_context* ctx, char* query, int key) {
       memset(&row->hl[rem.rm_so], HL_MATCH, rem.rm_eo-rem.rm_so);
       break;
     }
+    free(find);
   }
   regfree(&re);
 }
@@ -1008,21 +1019,27 @@ void e_replace_all(e_context* ctx) {
   int found = 0;
   int i;
   for (i = 0; i < ctx->nrows; i++) {
-    char* res;
+    wchar_t* res;
     e_row* row = &ctx->row[i];
-    res = strsub(row->str, query, replace);
+    wchar_t* q = malloc(strlen(query)*sizeof(wchar_t));
+    wchar_t* r = malloc(strlen(replace)*sizeof(wchar_t));
+    mbstowcs(q, query, strlen(query));
+    mbstowcs(r, replace, strlen(replace));
+    res = strsub(row->str, q, r);
     if (res) {
       free(row->str);
       row->str = res;
-      row->size = strlen(res);
+      row->size = wcslen(res);
       found += 1;
     }
-    res = strsub(row->render, query, replace);
+    res = strsub(row->render, q, r);
     if (res) {
       free(row->render);
       row->render = res;
-      row->rsize = strlen(res);
+      row->rsize = wcslen(res);
     }
+    free(q);
+    free(r);
   }
 
   e_set_status_msg(ctx, "Replaced '%s' with '%s' on %d lines", query, replace, found);
@@ -1103,9 +1120,9 @@ e_context* e_context_copy(e_context* ctx) {
     e_row* row = &new->row[i];
     row->idx = ctx->row[i].idx;
     row->size = ctx->row[i].size;
-    row->str = strdup(ctx->row[i].str);
+    row->str = wcsdup(ctx->row[i].str);
     row->rsize = ctx->row[i].rsize;
-    row->render = strdup(ctx->row[i].render);
+    row->render = wcsdup(ctx->row[i].render);
     row->hl = malloc(ctx->row[i].rsize);
     memcpy(row->hl, ctx->row[i].hl, ctx->row[i].rsize);
     row->open_pattern = ctx->row[i].open_pattern;
@@ -1136,8 +1153,8 @@ long long e_context_size(e_context* ctx) {
   size += sizeof(e_row) * ctx->nrows;
 
   for (i = 0; i < ctx->nrows; i++) {
-    size += strlen(ctx->row[i].render);
-    size += strlen(ctx->row[i].str);
+    size += wcslen(ctx->row[i].render);
+    size += wcslen(ctx->row[i].str);
   }
 
 

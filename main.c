@@ -44,7 +44,7 @@ int main(int argc, char** argv) {
   }
 
   if (!GLOB->nrows) {
-    e_append_row(GLOB, (char*) "", 0);
+    e_append_row(GLOB, (wchar_t*) "", 0);
     GLOB->dirty = 0;
   }
 

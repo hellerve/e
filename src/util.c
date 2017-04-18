@@ -15,8 +15,8 @@ int isnum(char* str) {
 }
 
 
-int issep(char c) {
-  return isspace(c) || c == '\0' || strchr(",.()+-/*=~%<>[];:", c) != NULL;
+int issep(wchar_t c) {
+  return iswspace(c) || c == '\0' || wcschr(L",.()+-/*=~%<>[];:", c) != NULL;
 }
 
 
@@ -30,10 +30,10 @@ char fpeek(FILE *f) {
 }
 
 
-char *strsub(char* str, char *pat, char *sub) {
-    char* res;
-    char* ins;
-    char* tmp;
+wchar_t* strsub(wchar_t* str, wchar_t* pat, wchar_t* sub) {
+    wchar_t* res;
+    wchar_t* ins;
+    wchar_t* tmp;
     int lpat;
     int lsub;
     int lfront;
@@ -41,34 +41,34 @@ char *strsub(char* str, char *pat, char *sub) {
 
     if (!str || !pat) return NULL;
 
-    lpat = strlen(pat);
+    lpat = wcslen(pat);
     if (!lpat) return NULL;
-    if (!sub) sub = (char*) "";
+    if (!sub) sub = (wchar_t*) L"";
 
-    lsub = strlen(sub);
+    lsub = wcslen(sub);
 
     ins = str;
-    for (i = 0; (tmp = strstr(ins, pat)); ++i) ins = tmp + lpat;
+    for (i = 0; (tmp = wcsstr(ins, pat)); ++i) ins = tmp + lpat;
     if (!i) return NULL;
 
-    tmp = res = malloc(strlen(str) + (lsub - lpat) * i + 1);
+    tmp = res = malloc((wcslen(str) + (lsub - lpat) * i + 1)*sizeof(wchar_t));
 
     if (!res) return NULL;
 
     while (i--) {
-        ins = strstr(str, pat);
+        ins = wcsstr(str, pat);
         lfront = ins - str;
-        tmp = strncpy(tmp, str, lfront) + lfront;
-        tmp = strcpy(tmp, sub) + lsub;
+        tmp = wcsncpy(tmp, str, lfront) + lfront;
+        tmp = wcscpy(tmp, sub) + lsub;
         str += lfront + lpat;
     }
-    strcpy(tmp, str);
+    wcscpy(tmp, str);
     return res;
 }
 
 
 char* strtriml(char* str) {
-  while(isspace((unsigned char)*str)) str++;
+  while(isspace(*str)) str++;
 
   return str;
 }

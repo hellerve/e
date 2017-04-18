@@ -45,6 +45,6 @@ enum {
 };
 
 
-void color_append(int, append_buf*, const char*, int);
-void ansi_append(append_buf*, const char*, int);
+void color_append(int, append_buf*, const wchar_t*, int);
+void ansi_append(append_buf*, const wchar_t*, int);
 int syntax_to_color(char);

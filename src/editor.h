@@ -12,7 +12,6 @@
 #include <unistd.h>
 
 #include "buffer.h"
-#include "util.h"
 #include "syntax.h"
 #include "clipboard.h"
 
@@ -26,10 +25,10 @@
 typedef struct {
   int idx;
   int size;
-  char* str;
+  wchar_t* str;
 
   int rsize;
-  char* render;
+  wchar_t* render;
   char* hl;
   int open_pattern;
 } e_row;
@@ -88,8 +87,8 @@ void e_insert_char(e_context*, int);
 void e_insert_char_at(e_context*, int, int, int);
 void e_del_char(e_context*);
 void e_del_char_at(e_context*, int, int);
-void e_insert_row(e_context*, int, char*, size_t);
-void e_append_row(e_context*, char*, size_t);
+void e_insert_row(e_context*, int, wchar_t*, size_t);
+void e_append_row(e_context*, wchar_t*, size_t);
 void e_del_row(e_context*, int);
 void e_set_status_msg(e_context*, const char*, ...);
 void e_save(e_context*);

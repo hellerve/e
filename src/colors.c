@@ -1,15 +1,15 @@
 #include "colors.h"
 
-void color_append(int color, append_buf* ab, const char* str, int len) {
-  char colbuf[4];
-  snprintf(colbuf, 4, "%dm", color);
+void color_append(int color, append_buf* ab, const wchar_t* str, int len) {
+  wchar_t colbuf[4];
+  swprintf(colbuf, 4, L"%dm", color);
 
-  ansi_append(ab, colbuf, strlen(colbuf));
+  ansi_append(ab, colbuf, wcslen(colbuf));
   ab_append(ab, str, len);
 }
 
-void ansi_append(append_buf* ab, const char* code, int len) {
-  ab_append(ab, "\x1b[", 2);
+void ansi_append(append_buf* ab, const wchar_t* code, int len) {
+  ab_append(ab, L"\x1b[", 2);
   ab_append(ab, code, len);
 }
 
