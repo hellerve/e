@@ -66,11 +66,13 @@ char *strsub(char* str, char *pat, char *sub) {
     return res;
 }
 
+
 char* strtriml(char* str) {
   while(isspace((unsigned char)*str)) str++;
 
   return str;
 }
+
 
 int strcmpr(char* str, char* suffix) {
     size_t strl;
@@ -83,4 +85,16 @@ int strcmpr(char* str, char* suffix) {
 
     if (suffixl > strl) return 0;
     return strncmp(str+strl-suffixl, suffix, suffixl) == 0;
+}
+
+
+void msleep(int ms) {
+#ifdef WIN32
+    Sleep(ms);
+#else
+    struct timespec ts;
+    ts.tv_sec = ms / 1000;
+    ts.tv_nsec = (ms % 1000) * 1000000;
+    nanosleep(&ts, NULL);
+#endif
 }

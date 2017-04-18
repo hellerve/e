@@ -53,6 +53,9 @@ int main(int argc, char** argv) {
   while(1) {
     e_clear_screen(GLOB);
     GLOB = e_process_key(GLOB);
+    // for reasons I'm not quite certain of this fixes the screen flicker.
+    // TODO: investigate better technique
+    msleep(20);
   }
   return 0;
 }
