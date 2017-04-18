@@ -21,6 +21,7 @@ It's in alpha, but I use it occasionally. Might unexpectedly break.
   - C/C++ (stable)
   - Python (experimental)
   - JavaScript (experimental)
+  - Go (experimental)
   - Markdown (unfinished)
 
 ## Installation

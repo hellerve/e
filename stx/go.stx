@@ -1,0 +1,9 @@
+displayname: go
+extensions: .*\.go
+keyword: (break|case|const|continue|default|defer|else|fallthrough|for|func|go|goto|if|import|interface|iota|make|new|package|range|return|select|struct|switch|type|var|append|cap|close|complex|copy|delete|imag|len|make|new|panic|print|println|real|recover)
+type: (uint8|uint16|uint32|uint64|int8|int16|int32|int64|float32|float64|complex64|complex128|byte|rune|uint|int|uintptr|string|map|chan)
+predef: (true|false|nil)
+comment|no_sep: //.*$
+comment|no_sep: /\*.*\*/
+comment|no_sep: /\*.*
+                 .*\*/
