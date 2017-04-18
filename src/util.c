@@ -16,7 +16,7 @@ int isnum(char* str) {
 
 
 int issep(char c) {
-  return isspace(c) || c == '\0' || strchr(",.()+-/*=~%<>[];", c) != NULL;
+  return isspace(c) || c == '\0' || strchr(",.()+-/*=~%<>[];:", c) != NULL;
 }
 
 

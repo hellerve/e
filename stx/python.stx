@@ -3,6 +3,6 @@ extensions: .*\.py
 pragma: (from|import)
 keyword: (and|as|assert|break|continue|def|del|elif|else|except|exec|finally|for|global|if|in|is|lambda|not|or|pass|raise|return|try|while|with|yield)
 type: (class|int|tuple|id|float|str|unicode|list|dict)
-predef: (print|True|False|None)
+predefined: (print|True|False|None)
 comment: #.*$
 type: @[^\(]*
