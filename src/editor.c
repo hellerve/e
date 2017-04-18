@@ -614,9 +614,10 @@ void e_update_hl(e_context* ctx, e_row* row) {
     regmatch_t rem;
     for (j = 0; j < ctx->stx->npatterns; j++) {
       pattern pat = ctx->stx->patterns[j];
-      if (!prev_sep && pat.needs_sep) continue;
+      if ((!prev_sep && pat.needs_sep)) continue;
       if (!regexec(&pat.pattern, row->render+i, (size_t) 1, &rem, 0)) {
         int len = rem.rm_eo - rem.rm_so;
+        if (pat.needs_sep && row->rsize > i+len && !issep(row->render[i+len])) continue;
         for (k = i; k < i+len; k++) row->hl[k] = pat.color;
         i += len;
         if (pat.multiline) {

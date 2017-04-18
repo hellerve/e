@@ -57,7 +57,7 @@ void syntax_read_pattern(syntax* c, FILE* f, char* key, char* value) {
     ln = strlen(l)-1;
     memmove(l+1, l, ln);
     l[0] = '^';
-    err = regcomp(&pat->closing, line, REG_EXTENDED);
+    err = regcomp(&pat->closing, l, REG_EXTENDED);
     if (err) exit(err);
     pat->multiline = 1;
   }
