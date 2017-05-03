@@ -100,9 +100,9 @@ void e_draw_status(e_context* ctx, append_buf* ab) {
 
   color_append(BLACK_BG, ab, " ", 1);
   color_append(WHITE, ab, "", 0);
-  char status[80];
+  char status[100];
   char rstatus[100];
-  int len  = snprintf(status, sizeof(status), "%.20s - %d lines %s",
+  int len  = snprintf(status, sizeof(status), "%.40s - %d lines %s",
                       ctx->filename ? ctx->filename : "[No Name]", ctx->nrows,
                       ctx->dirty ? "[UNSAVED]" : "");
   int rlen = snprintf(rstatus, sizeof(rstatus), "%s  |  %d/%d  %d ",
