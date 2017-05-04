@@ -433,8 +433,8 @@ e_context* e_initial(e_context* ctx, int c) {
       e_context* new = e_context_copy(ctx);
       new->history = ctx;
       e_insert_row(new, ++new->cy, (char*) "", 0);
-    new->cx = 0;
-    new->rx = 0;
+      new->cx = 0;
+      new->rx = 0;
       new->mode = EDIT;
       return new;
     }
@@ -470,6 +470,7 @@ e_context* e_initial(e_context* ctx, int c) {
     case 'h': {
       e_context* new = e_context_copy(ctx);
       new->history = ctx;
+      e_clipboard_copy(new->row[new->cy].str);
       e_del_row(new, new->cy);
       return new;
     }
@@ -483,6 +484,21 @@ e_context* e_initial(e_context* ctx, int c) {
       }
       e_set_status_msg(ctx, "Already at oldest change.");
       break;
+    }
+    case 'c':
+      e_clipboard_copy(ctx->row[ctx->cy].str);
+      break;
+    case 'v': {
+      char* str = e_clipboard_paste();
+      e_context* new = e_context_copy(ctx);
+      new->history = ctx;
+      int i = 0;
+      while (str[i] != '\0') {
+        if (str[i] == '\n' || str[i] == '\r') e_insert_newline(new);
+        else e_insert_char(new, str[i]);
+		i++;
+      }
+      return new;
     }
   }
   return ctx;

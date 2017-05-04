@@ -5,8 +5,6 @@
 #include <fcntl.h>
 #include <regex.h>
 #include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <termios.h>
@@ -16,6 +14,7 @@
 #include "buffer.h"
 #include "util.h"
 #include "syntax.h"
+#include "clipboard.h"
 
 #define E_VERSION "0.0.1"
 #define E_TAB_WIDTH 4
