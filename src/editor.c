@@ -100,9 +100,9 @@ void e_draw_status(e_context* ctx, append_buf* ab) {
 
   color_append(BLACK_BG, ab, " ", 1);
   color_append(WHITE, ab, "", 0);
-  char status[80];
+  char status[100];
   char rstatus[100];
-  int len  = snprintf(status, sizeof(status), "%.20s - %d lines %s",
+  int len  = snprintf(status, sizeof(status), "%.40s - %d lines %s",
                       ctx->filename ? ctx->filename : "[No Name]", ctx->nrows,
                       ctx->dirty ? "[UNSAVED]" : "");
   int rlen = snprintf(rstatus, sizeof(rstatus), "%s  |  %d/%d  %d ",
@@ -374,6 +374,13 @@ e_context* e_edit(e_context* ctx, int c) {
     }
     case CTRL('l'):
       break;
+    case '\t': {
+      e_context* new = e_context_copy(ctx);
+      new->history = ctx;
+      e_insert_char(new, ' ');
+      e_insert_char(new, ' ');
+      return new;
+    }
     default: {
       e_context* new = e_context_copy(ctx);
       new->history = ctx;
@@ -433,8 +440,8 @@ e_context* e_initial(e_context* ctx, int c) {
       e_context* new = e_context_copy(ctx);
       new->history = ctx;
       e_insert_row(new, ++new->cy, (char*) "", 0);
-    new->cx = 0;
-    new->rx = 0;
+      new->cx = 0;
+      new->rx = 0;
       new->mode = EDIT;
       return new;
     }
@@ -470,6 +477,7 @@ e_context* e_initial(e_context* ctx, int c) {
     case 'h': {
       e_context* new = e_context_copy(ctx);
       new->history = ctx;
+      e_clipboard_copy(new->row[new->cy].str);
       e_del_row(new, new->cy);
       return new;
     }
@@ -483,6 +491,22 @@ e_context* e_initial(e_context* ctx, int c) {
       }
       e_set_status_msg(ctx, "Already at oldest change.");
       break;
+    }
+    case 'c':
+      e_clipboard_copy(ctx->row[ctx->cy].str);
+      break;
+    case 'v': {
+      char* str = e_clipboard_paste();
+      e_context* new = e_context_copy(ctx);
+      new->history = ctx;
+      int i = 0;
+      while (str[i] != '\0') {
+        if (str[i] == '\n' || str[i] == '\r') e_insert_newline(new);
+        else e_insert_char(new, str[i]);
+        i++;
+      }
+      free(str);
+      return new;
     }
   }
   return ctx;

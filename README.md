@@ -46,7 +46,9 @@ Use `wasd` or the arrow keys for movement. Editing (backspace, etc.) works norma
 - `p`: insert a line above the cursor and start editing (*p*revious)
 - `b`: jump to the *b*eginning of the line and start editing
 - `t`: jump to the end of the line and start editing (*t*erminus)
-- `h`: *h*ide a line (delete it)
+- `h`: *h*ide a line (delete it) and add it to the system clipboard (clipboard only on Windows and OS X)
+- `c`: *c*opy a line to the system clipboard (only on Windows and OS X)
+- `v`: *v*iew (i.e. paste) the contents of the system clipboard (only on Windows and OS X)
 - `/`: incremental highlighted search
 - `r`: search and replace first occurrence
 - `R`: search and replace all occurrences
