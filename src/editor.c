@@ -374,6 +374,13 @@ e_context* e_edit(e_context* ctx, int c) {
     }
     case CTRL('l'):
       break;
+    case '\t': {
+      e_context* new = e_context_copy(ctx);
+      new->history = ctx;
+      e_insert_char(new, ' ');
+      e_insert_char(new, ' ');
+      return new;
+    }
     default: {
       e_context* new = e_context_copy(ctx);
       new->history = ctx;
@@ -496,8 +503,9 @@ e_context* e_initial(e_context* ctx, int c) {
       while (str[i] != '\0') {
         if (str[i] == '\n' || str[i] == '\r') e_insert_newline(new);
         else e_insert_char(new, str[i]);
-		i++;
+        i++;
       }
+      free(str);
       return new;
     }
   }
