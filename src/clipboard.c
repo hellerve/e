@@ -48,8 +48,7 @@ char* e_clipboard_paste() {
   return data;
 }
 
-#endif
-#ifdef __APPLE__
+#elif defined(__APPLE__)
 
 void e_clipboard_copy(char* str) {
   const char proto_cmd[] = "echo '%s' | pbcopy";
@@ -72,4 +71,13 @@ char* e_clipboard_paste() {
 
   return buffer;
 }
+
+#else
+
+void e_clipboard_copy(char* str) {}
+
+char* e_clipboard_paste() {
+  return NULL;
+}
+
 #endif
