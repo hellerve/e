@@ -3,54 +3,52 @@
 #include <windows.h>
 
 void e_clipboard_copy(char* str) {
-  char far *buffer;
-  int bytes;
-  HGLOBAL clipbuffer;
+  char far* buffer;
+  int n;
+  HGLOBAL clip;
 
-  bytes = strlen(toclipdata);
+  n = strlen(str);
   OpenClipboard(NULL);
   EmptyClipboard();
-  clipbuffer = GlobalAlloc(GMEM_DDESHARE, bytes+1);
+  clip = GlobalAlloc(GMEM_DDESHARE, n+1);
 
-  buffer = (char far*) GlobalLock(clipbuffer);
+  buffer = (char far*) GlobalLock(clip);
   if (!buffer) return;
 
-  strcpy(buffer, toclipdata);
+  strcpy(buffer, str);
 
-  GlobalUnlock(clipbuffer);
-  SetClipboardData(CF_TEXT,clipbuffer);
+  GlobalUnlock(clip);
+  SetClipboardData(CF_TEXT, clip);
   CloseClipboard();
 }
 
 
 char* e_clipboard_paste() {
-  int k;
   char* buffer = NULL;
   char* data = NULL;
   char empty[80] = "";
 
   int bytes = 0;
-  if (OpenClipboard(NULL)){
-     HANDLE hData = GetClipboardData(CF_TEXT);
-     char * buffer = (char*) GlobalLock(hData);
-     GlobalUnlock(hData);
-     CloseClipboard();
-     if (!buffer) {
-        bytes = strlen(empty);
-        data = (char*) malloc(bytes+1);
-        strcpy(data,empty);
-     } else {
-        bytes = strlen(buffer);
-        data = (char*) malloc(bytes+1);
-        strcpy(data, buffer);
+  if (OpenClipboard(NULL)) {
+    HANDLE hData = GetClipboardData(CF_TEXT);
+    char* buffer = (char*) GlobalLock(hData);
+    GlobalUnlock(hData);
+    CloseClipboard();
+
+    if (!buffer) {
+      bytes = strlen(empty);
+      data = (char*) malloc(bytes+1);
+      strcpy(data, empty);
+    } else {
+      bytes = strlen(buffer);
+      data = (char*) malloc(bytes+1);
+      strcpy(data, buffer);
      }
-  } else {
-     k = GetLastError();
   }
   return data;
 }
-#endif
 
+#endif
 #ifdef __APPLE__
 
 void e_clipboard_copy(char* str) {
