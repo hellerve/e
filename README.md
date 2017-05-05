@@ -22,6 +22,7 @@ It's in alpha, but I use it occasionally. Might unexpectedly break.
   - Python (experimental)
   - JavaScript (experimental)
   - Go (experimental)
+  - Haskell (experimental)
   - Markdown (unfinished)
 
 ## Installation
