@@ -100,8 +100,8 @@ void e_draw_status(e_context* ctx, append_buf* ab) {
 
   color_append(BLACK_BG, ab, L" ", 1);
   color_append(WHITE, ab, L"", 0);
-  char status[100];
-  char rstatus[100];
+  wchar_t status[100];
+  wchar_t rstatus[100];
   int len  = swprintf(status, sizeof(status), L"%.40s - %d lines %s",
                       ctx->filename ? ctx->filename : "[No Name]", ctx->nrows,
                       ctx->dirty ? "[UNSAVED]" : "");
@@ -482,7 +482,10 @@ e_context* e_initial(e_context* ctx, int c) {
     case 'h': {
       e_context* new = e_context_copy(ctx);
       new->history = ctx;
-      e_clipboard_copy(new->row[new->cy].str);
+      e_row row = new->row[new->cy];
+      char* conv = malloc(row.size*sizeof(wchar_t));
+      wcstombs(conv, row.str, row.size);
+      e_clipboard_copy(conv);
       e_del_row(new, new->cy);
       return new;
     }
@@ -497,9 +500,13 @@ e_context* e_initial(e_context* ctx, int c) {
       e_set_status_msg(ctx, "Already at oldest change.");
       break;
     }
-    case 'c':
-      e_clipboard_copy(ctx->row[ctx->cy].str);
+    case 'c': {
+      e_row row = ctx->row[ctx->cy];
+      char* conv = malloc(row.size*sizeof(wchar_t));
+      wcstombs(conv, row.str, row.size);
+      e_clipboard_copy(conv);
       break;
+    }
     case 'v': {
       char* str = e_clipboard_paste();
       e_context* new = e_context_copy(ctx);
@@ -758,13 +765,13 @@ void e_insert_row(e_context* ctx, int at, wchar_t* s, size_t len) {
   if (at < 0 || at > ctx->nrows) return;
 
   ctx->row = realloc(ctx->row, sizeof(e_row) * (ctx->nrows + 1));
-  memmove(&ctx->row[at+1], &ctx->row[at], sizeof(e_row) * (ctx->nrows-at));
+  if (ctx->nrows) memmove(&ctx->row[at+1], &ctx->row[at], sizeof(e_row) * (ctx->nrows-at));
   for (i = at + 1; i <= ctx->nrows; i++) ctx->row[i].idx++;
 
   ctx->row[at].idx = at;
   ctx->row[at].size = len;
   ctx->row[at].str = malloc(len + 1);
-  memcpy(ctx->row[at].str, s, len);
+  memcpy(ctx->row[at].str, s, len * sizeof(wchar_t) + 1);
   ctx->row[at].str[len] = '\0';
   ctx->row[at].rsize = 0,
   ctx->row[at].render = NULL;
@@ -857,15 +864,13 @@ void e_open(e_context* ctx, char* filename) {
   FILE* fp = fopen(filename, "r");
   if (!fp) return;
 
-  char* line = NULL;
+  wchar_t* line = NULL;
   size_t linecap = 0;
   ssize_t len;
-  while ((len = getline(&line, &linecap, fp)) != -1) {
+  while ((len = getwline(&line, &linecap, fp)) != -1) {
     if (len > 0 && (line[len-1] == '\n' || line[len-1] == '\r')) len--;
-    wchar_t* l = malloc(strlen(line)*sizeof(wchar_t));
-    mbstowcs(l, line, strlen(line));
-    e_append_row(ctx, l, len);
-    free(l);
+    e_append_row(ctx, line, len);
+    free(line);
   }
   free(line);
   fclose(fp);

@@ -98,3 +98,68 @@ void msleep(int ms) {
     nanosleep(&ts, NULL);
 #endif
 }
+
+/* Sigh. Why do I need to do that. */
+size_t getwline(wchar_t** const lineptr, size_t* const sizeptr, FILE* const in) {
+    wchar_t *line;
+    size_t   size;
+    size_t   used = 0;
+    wint_t   wc;
+    fpos_t   startpos;
+    int      seekable;
+
+    if (!lineptr || !sizeptr || !in)  return 0;
+
+    if (!*lineptr) {
+        line = *lineptr;
+        size = *sizeptr;
+    } else {
+        line = NULL;
+        size = 0;
+        *sizeptr = 0;
+    }
+
+    if (fgetpos(in, &startpos) == 0) seekable = 1;
+    else seekable = 0;
+
+    while (1) {
+        wc = fgetwc(in);
+        if (wc == WEOF) {
+            if (ferror(in)) {
+                if (seekable) fsetpos(in, &startpos);
+                return 0;
+            }
+            break;
+        }
+
+        if (used + 2 > size) {
+            size = (used | 1023) + 1009;
+            line = realloc(line, size * sizeof line[0]);
+            if (!line) {
+                if (seekable) fsetpos(in, &startpos);
+                return 0;
+            }
+            *lineptr = line;
+            *sizeptr = size;
+        }
+
+        line[used++] = wc;
+
+        if (wc == L'\n') break;
+    }
+
+    if (used >= size) {
+        size = used + 1;
+        line = realloc(line, size * sizeof line[0]);
+        if (!line) {
+            if (seekable) fsetpos(in, &startpos);
+            return 0;
+        }
+        *lineptr = line;
+        *sizeptr = size;
+    }
+
+    line[used] = L'\0';
+
+    return used;
+}

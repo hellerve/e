@@ -20,3 +20,4 @@ char* strtriml(char*);
 int strcmpr(char*, char*);
 char fpeek(FILE*);
 void msleep(int);
+size_t getwline(wchar_t** const, size_t* const, FILE* const);
