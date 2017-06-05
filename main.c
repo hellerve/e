@@ -10,7 +10,7 @@ syntax** stx;
 // After a segfault we shouldn't be messing with memory
 void handler(int sig) {
   disable_raw_mode(GLOB);
-  void *array[10];
+  void* array[10];
   size_t size;
 
   size = backtrace(array, 10);
@@ -18,7 +18,7 @@ void handler(int sig) {
   fputs("e has crashed. If you want to file a bug report, please attach the following:\n", stderr);
   fprintf(stderr, "Signal %d:\n", sig);
   backtrace_symbols_fd(array, size, STDERR_FILENO);
-  exit(0);
+  exit(1);
 }
 
 

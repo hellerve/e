@@ -14,7 +14,7 @@ typedef struct pattern {
   regex_t closing;
   int color;
   char needs_sep;
-  char multiline;
+  short multiline;
 } pattern;
 
 typedef struct syntax {
