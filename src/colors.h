@@ -1,6 +1,7 @@
 #include <stdio.h>
 
 #include "buffer.h"
+#include "util.h"
 
 enum {
   NORMAL,

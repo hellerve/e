@@ -12,7 +12,6 @@
 #include <unistd.h>
 
 #include "buffer.h"
-#include "util.h"
 #include "syntax.h"
 #include "clipboard.h"
 
