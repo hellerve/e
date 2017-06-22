@@ -342,6 +342,7 @@ void e_insert_newline(e_context*);
 
 
 e_context* e_edit(e_context* ctx, int c) {
+  int i;
   switch (c) {
     case ARROW_UP:
     case ARROW_DOWN:
@@ -377,8 +378,7 @@ e_context* e_edit(e_context* ctx, int c) {
     case '\t': {
       e_context* new = e_context_copy(ctx);
       new->history = ctx;
-      e_insert_char(new, ' ');
-      e_insert_char(new, ' ');
+      for (i = 0; i < E_TAB_WIDTH; i++) e_insert_char(new, ' ');
       return new;
     }
     default: {
@@ -534,7 +534,7 @@ char* e_rows_to_str(e_context* ctx, int* len) {
   int j;
   for (j = 0; j < ctx->nrows; j++) total += ctx->row[j].size + 1;
   *len = total;
-  char* buf = malloc(total);
+  char* buf = malloc(total*sizeof(char));
   char* p = buf;
   for (j = 0; j < ctx->nrows; j++) {
     memcpy(p, ctx->row[j].str, ctx->row[j].size);
@@ -585,7 +585,7 @@ void e_update_hl(e_context* ctx, e_row* row) {
   int prev_sep = 1;
   int ins = 0;
   int open_pattern = row->idx ? ctx->row[row->idx-1].open_pattern : -1;
-  row->hl = realloc(row->hl, row->rsize);
+  row->hl = realloc(row->hl, row->rsize*sizeof(char));
   memset(row->hl, HL_NORMAL, row->rsize);
 
   if (!ctx->stx) return;
@@ -672,7 +672,7 @@ void e_update_row(e_context* ctx, e_row* row) {
   for (j = 0; j < row->size; j++) if (row->str[j] == '\t') tabs++;
 
   free(row->render);
-  row->render = malloc(row->size+tabs*E_TAB_WIDTH+1);
+  row->render = malloc((row->size+tabs*E_TAB_WIDTH+1)*sizeof(char));
 
   for (j = 0; j < row->size; j++) {
     if (row->str[j] == '\t') {
@@ -683,7 +683,7 @@ void e_update_row(e_context* ctx, e_row* row) {
     }
   }
   row->render[i] = '\0';
-  row->rsize = i;
+  row->rsize = i; //utf8len(row->render);
   int open_pattern = row->open_pattern;
   row->open_pattern = -1;
   e_update_hl(ctx, row);
@@ -696,7 +696,7 @@ void e_update_row(e_context* ctx, e_row* row) {
 }
 
 void e_row_append(e_context* ctx, e_row* row, char* s, size_t len) {
-  row->str = realloc(row->str, row->size+len+1);
+  row->str = realloc(row->str, row->size+len+1*sizeof(char));
   memcpy(&row->str[row->size], s, len);
   row->size += len;
   row->str[row->size] = '\0';
@@ -705,7 +705,7 @@ void e_row_append(e_context* ctx, e_row* row, char* s, size_t len) {
 
 void e_row_insert_char(e_context* ctx, e_row* row, int at, int c) {
   if (at < 0 || at > row->size) at = row->size;
-  row->str = realloc(row->str, row->size+2);
+  row->str = realloc(row->str, (row->size+2)*sizeof(char));
   memmove(&row->str[at+1], &row->str[at], row->size-at+1);
   row->size++;
   row->str[at] = c;
@@ -756,7 +756,7 @@ void e_insert_row(e_context* ctx, int at, char* s, size_t len) {
 
   ctx->row[at].idx = at;
   ctx->row[at].size = len;
-  ctx->row[at].str = malloc(len + 1);
+  ctx->row[at].str = malloc((len + 1)*sizeof(char));
   memcpy(ctx->row[at].str, s, len);
   ctx->row[at].str[len] = '\0';
   ctx->row[at].rsize = 0,
@@ -867,7 +867,7 @@ void e_open(e_context* ctx, char* filename) {
 
 char* e_prompt(e_context* ctx, const char* prompt, e_cb callback) {
   size_t bufsize = 128;
-  char *buf = malloc(bufsize);
+  char *buf = malloc(bufsize*sizeof(char));
   size_t buflen = 0;
   buf[0] = '\0';
 
@@ -890,7 +890,7 @@ char* e_prompt(e_context* ctx, const char* prompt, e_cb callback) {
     } else if (!iscntrl(c) && c < 128) {
       if (buflen == bufsize - 1) {
         bufsize *= 2;
-        buf = realloc(buf, bufsize);
+        buf = realloc(buf, bufsize*sizeof(char));
       }
       buf[buflen++] = c;
       buf[buflen] = '\0';
@@ -949,7 +949,7 @@ void e_find_cb(e_context* ctx, char* query, int key) {
       ctx->roff = ctx->nrows;
 
       saved_line = cur;
-      saved_hl = malloc(row->rsize);
+      saved_hl = malloc(row->rsize*sizeof(char));
       memcpy(saved_hl, row->hl, row->rsize);
       memset(&row->hl[rem.rm_so], HL_MATCH, rem.rm_eo-rem.rm_so);
       break;
@@ -1106,7 +1106,7 @@ e_context* e_context_copy(e_context* ctx) {
     row->str = strdup(ctx->row[i].str);
     row->rsize = ctx->row[i].rsize;
     row->render = strdup(ctx->row[i].render);
-    row->hl = malloc(ctx->row[i].rsize);
+    row->hl = malloc(ctx->row[i].rsize*sizeof(char));
     memcpy(row->hl, ctx->row[i].hl, ctx->row[i].rsize);
     row->open_pattern = ctx->row[i].open_pattern;
   }

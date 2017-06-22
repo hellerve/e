@@ -11,6 +11,7 @@
 #include <time.h>
 #endif
 
+int utf8len(const char*);
 int isnum(char*);
 int issep(char);
 char* strsub(char*, char*, char*);

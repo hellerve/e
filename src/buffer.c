@@ -1,7 +1,7 @@
 #include "buffer.h"
 
 void ab_append(append_buf* ab, const char* s, int len) {
-  char *new = realloc(ab->b, (unsigned long) ab->len + (unsigned long) len);
+  char *new = realloc(ab->b, ((unsigned long) ab->len + (unsigned long) len)*sizeof(char));
   if (new == NULL) return;
   memcpy(&new[ab->len], s, len);
   ab->b = new;

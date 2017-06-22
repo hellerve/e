@@ -1,5 +1,11 @@
 #include "util.h"
 
+int utf8len(const char *s) {
+  int len = 0;
+  while(*s) len += (*(s++)&0xC0)!=0x80;
+  return len;
+}
+
 int isnum(char* str) {
   if (!str) return 0;
 
