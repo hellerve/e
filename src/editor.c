@@ -76,7 +76,6 @@ void e_draw_rows(e_context* ctx, append_buf* ab) {
         } else if (hl[i] == current_color) {
           ab_append(ab, &c[i], 1);
         } else {
-          color_append(NORMAL, ab, "", 0);
           int color = syntax_to_color(hl[i]);
           color_append(color, ab, &c[i], 1);
           current_color = color;
@@ -171,7 +170,7 @@ int e_cx_to_rx(e_row* row, int cx){
 
   for (j = 0; j < cx; j++) {
     if (row->str[j] == '\t') rx += (E_TAB_WIDTH - 1) - (rx % E_TAB_WIDTH);
-    rx++;
+    if (!isutf8cont(row->str[j])) rx++;
   }
   return rx;
 }
@@ -683,7 +682,7 @@ void e_update_row(e_context* ctx, e_row* row) {
     }
   }
   row->render[i] = '\0';
-  row->rsize = i; //utf8len(row->render);
+  row->rsize = i;
   int open_pattern = row->open_pattern;
   row->open_pattern = -1;
   e_update_hl(ctx, row);
@@ -714,10 +713,12 @@ void e_row_insert_char(e_context* ctx, e_row* row, int at, int c) {
 
 
 void e_row_del_char(e_context* ctx, e_row* row, int at) {
+  char c = row->str[at];
   if (at < 0 || at >= row->size) return;
   memmove(&row->str[at], &row->str[at + 1], row->size - at);
   row->size--;
   e_update_row(ctx, row);
+  if (isutf8cont(c)) { e_row_del_char(ctx, row, at-1); ctx->cx--; }
 }
 
 

@@ -12,8 +12,9 @@
 #endif
 
 int utf8len(const char*);
-int isnum(char*);
-int issep(char);
+short isutf8cont(char);
+short isnum(char*);
+short issep(char);
 char* strsub(char*, char*, char*);
 char* strtriml(char*);
 int strcmpr(char*, char*);

@@ -6,7 +6,11 @@ int utf8len(const char *s) {
   return len;
 }
 
-int isnum(char* str) {
+short isutf8cont(char c) {
+  return (c&0xC0)==0x80;
+}
+
+short isnum(char* str) {
   if (!str) return 0;
 
   if (*str == '-') str++;
@@ -21,7 +25,7 @@ int isnum(char* str) {
 }
 
 
-int issep(char c) {
+short issep(char c) {
   return isspace(c) || c == '\0' || strchr(",.()+-/*=~%<>[];:", c) != NULL;
 }
 
