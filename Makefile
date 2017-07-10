@@ -11,7 +11,7 @@ all: main.c syntax
 	$(CC) $(MAIN) $(SOURCES) -DSTXDIR=\"$(STXDIR)\" -o $(BUILDDIR)$(TARGET) $(CFLAGS)
 
 lua:
-	make all CFLAGS+=-DWITH_LUA -L./vendor/lua-5.3.4/src -llua
+	make all CFLAGS+="-DWITH_LUA -L./vendor/lua-5.3.4/src -llua"
 
 syntax:
 	mkdir -p $(STXDIR)
@@ -21,7 +21,7 @@ install: all
 	install $(BUILDDIR)$(TARGET) $(PREFIX)$(TARGET)
 
 install_lua:
-	make install CFLAGS+=-DWITH_LUA -L./vendor/lua-5.3.4/src -llua
+	make install CFLAGS+="-DWITH_LUA -L./vendor/lua-5.3.4/src -llua"
 
 uninstall:
 	rm -rf $(PREFIX)$(TARGET)
