@@ -16,6 +16,7 @@ char* e_lua_eval(char* str) {
     l = luaL_newstate();
     luaL_openlibs(l);
   }
+  luaL_loadbuffer(l, str, strlen(str), "=stdin");
   addret(l, str);
 
   if (lua_pcall(l, 0, 1, 0)) {
