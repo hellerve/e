@@ -15,10 +15,6 @@
 #include "syntax.h"
 #include "clipboard.h"
 
-#ifdef WITH_LUA
-#include "lua_bindings.h"
-#endif
-
 #define E_VERSION "0.0.1"
 #define E_TAB_WIDTH 4
 
@@ -108,3 +104,14 @@ e_context* e_setup();
 
 void enable_raw_mode(e_context*);
 void disable_raw_mode(e_context*);
+
+#ifdef WITH_LUA
+#include "../vendor/lua-5.3.4/src/lua.h"
+#include "../vendor/lua-5.3.4/src/lauxlib.h"
+#include "../vendor/lua-5.3.4/src/lualib.h"
+
+lua_State *l;
+
+char* e_lua_eval(e_context*, char*);
+#endif
+

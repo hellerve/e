@@ -510,7 +510,7 @@ e_context* e_initial(e_context* ctx, int c) {
     case 'l': {
       #ifdef WITH_LUA
       char* lua_exp = e_prompt(ctx, "Type Lua expression: %s", NULL);
-      e_set_status_msg(ctx, "%s", e_lua_eval(lua_exp));
+      e_set_status_msg(ctx, "%s", e_lua_eval(ctx, lua_exp));
       #else
       e_set_status_msg(ctx, "e wasn't compiled with Lua support.");
       #endif
@@ -1179,27 +1179,86 @@ void e_set_highlighting(e_context* ctx, syntax** stx) {
 
 
 e_context*  e_setup() {
-e_context* ctx = malloc(sizeof(e_context));
-if (tcgetattr(STDIN_FILENO, &ctx->orig) == -1) e_die("tcgetattr");
+  e_context* ctx = malloc(sizeof(e_context));
+  if (tcgetattr(STDIN_FILENO, &ctx->orig) == -1) e_die("tcgetattr");
 
-write(STDOUT_FILENO, "\x1b""7\x1b[?47h", 8);
-e_get_win_size(ctx);
-enable_raw_mode(ctx);
-ctx->rx = 0;
-ctx->cx = 0;
-ctx->cy = 0;
-ctx->nrows = 0;
-ctx->row = NULL;
-ctx->filename = NULL;
-ctx->coff = 0;
-ctx->roff = 0;
-ctx->rows -= 2;
-ctx->statusmsg[0] = '\0';
-ctx->statusmsg_time = 0;
-ctx->dirty = 0;
-ctx->mode = INITIAL;
-ctx->history = NULL;
-ctx->stx = NULL;
-ctx->stxes = NULL;
-return ctx;
+  write(STDOUT_FILENO, "\x1b""7\x1b[?47h", 8);
+  e_get_win_size(ctx);
+  enable_raw_mode(ctx);
+  ctx->rx = 0;
+  ctx->cx = 0;
+  ctx->cy = 0;
+  ctx->nrows = 0;
+  ctx->row = NULL;
+  ctx->filename = NULL;
+  ctx->coff = 0;
+  ctx->roff = 0;
+  ctx->rows -= 2;
+  ctx->statusmsg[0] = '\0';
+  ctx->statusmsg_time = 0;
+  ctx->dirty = 0;
+  ctx->mode = INITIAL;
+  ctx->history = NULL;
+  ctx->stx = NULL;
+  ctx->stxes = NULL;
+  return ctx;
 }
+
+#ifdef WITH_LUA
+
+static void addret(lua_State *l, char* str) {
+  const char *r = lua_pushfstring(l, "return %s;", str);
+  if (luaL_loadbuffer(l, r, strlen(r), "=stdin") == LUA_OK) lua_remove(l, -2);
+  else lua_pop(l, 2);
+}
+
+int e_lua_message(lua_State* l) {
+  if (lua_gettop(l) == 1) return 1;
+
+  return 0;
+}
+
+int e_lua_insert(lua_State* l) {
+  if (lua_gettop(l) == 1) {
+    const char* x = lua_tostring(l, 1);
+
+    lua_getglobal(l, "ctx");
+    e_context* ctx = lua_touserdata(l, lua_gettop(l));
+
+    for (int i = 0; i < strlen(x); i++) e_insert_char(ctx, x[i]);
+  }
+
+  return 0;
+}
+
+void e_initialize_lua() {
+  l = luaL_newstate();
+  luaL_openlibs(l);
+
+  lua_pushcfunction(l, e_lua_message);
+  lua_setglobal(l, "message");
+  lua_pushcfunction(l, e_lua_insert);
+  lua_setglobal(l, "insert");
+}
+
+char* e_lua_eval(e_context* ctx, char* str) {
+  char* ret = malloc(100*sizeof(char));
+  if (!l) e_initialize_lua();
+
+  lua_pushlightuserdata(l, ctx);
+  lua_setglobal(l, "ctx");
+
+  luaL_loadbuffer(l, str, strlen(str), "=stdin");
+  addret(l, str);
+
+  if (lua_pcall(l, 0, 1, 0)) {
+    snprintf(ret, 100, "lua can't execute expression: %s.", lua_tostring(l, -1));
+    lua_pop(l, 1);
+  } else {
+    snprintf(ret, 100, "%s", lua_tostring(l, -1));
+    lua_pop(l, lua_gettop(l));
+  }
+
+  return ret;
+}
+#endif
