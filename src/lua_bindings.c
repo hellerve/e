@@ -1,3 +1,4 @@
+#ifdef WITH_LUA
 #include <stdlib.h>
 #include <string.h>
 
@@ -27,3 +28,7 @@ char* e_lua_eval(char* str) {
 
   return ret;
 }
+#else
+/* tis a hack */
+typedef int make_iso_compilers_happy;
+#endif

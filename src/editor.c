@@ -510,7 +510,7 @@ e_context* e_initial(e_context* ctx, int c) {
     case 'l': {
       #ifdef WITH_LUA
       char* lua_exp = e_prompt(ctx, "Type Lua expression: %s", NULL);
-      e_set_status_msg(ctx, "%s: %s", lua_exp, e_lua_eval(lua_exp));
+      e_set_status_msg(ctx, "%s", e_lua_eval(lua_exp));
       #else
       e_set_status_msg(ctx, "e wasn't compiled with Lua support.");
       #endif
