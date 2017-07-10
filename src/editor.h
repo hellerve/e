@@ -15,6 +15,10 @@
 #include "syntax.h"
 #include "clipboard.h"
 
+#ifdef WITH_LUA
+#include "lua_bindings.h"
+#endif
+
 #define E_VERSION "0.0.1"
 #define E_TAB_WIDTH 4
 
