@@ -1,5 +1,7 @@
 #include "editor.h"
 
+int E_TAB_WIDTH = 4;
+
 void disable_raw_mode(e_context* ctx) {
   if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &ctx->orig) == -1) e_die("tcsetattr");
 }
@@ -853,7 +855,7 @@ void e_del_char_at(e_context* ctx, int cx, int cy) {
 }
 
 
-void e_open(e_context* ctx, char* filename) {
+void e_open(e_context* ctx, const char* filename) {
   free(ctx->filename);
   ctx->filename = strdup(filename);
 
@@ -1289,6 +1291,57 @@ int e_lua_get_bounding(lua_State* l) {
 }
 
 
+int e_lua_get_text(lua_State* l) {
+  lua_getglobal(l, "ctx");
+  e_context* ctx = lua_touserdata(l, lua_gettop(l));
+  int len;
+
+  lua_pushstring(l, e_rows_to_str(ctx, &len));
+
+  return 1;
+}
+
+
+int e_lua_set_tab(lua_State* l) {
+  if (lua_gettop(l) == 1) {
+    int x = lua_tonumber(l, 1);
+
+    E_TAB_WIDTH = x;
+  }
+
+  return 0;
+}
+
+
+int e_lua_get_tab(lua_State* l) {
+  lua_pushnumber(l, E_TAB_WIDTH);
+
+  return 1;
+}
+
+
+int e_lua_open(lua_State* l) {
+  if (lua_gettop(l) == 1) {
+    const char* name = lua_tostring(l, 1);
+
+    lua_getglobal(l, "ctx");
+    e_context* ctx = lua_touserdata(l, lua_gettop(l));
+    syntax** stx = ctx->stxes;
+
+    e_context_free(ctx);
+
+    ctx = e_setup();
+    e_set_highlighting(ctx, stx);
+    e_open(ctx, name);
+
+    lua_pushlightuserdata(l, ctx);
+    lua_setglobal(l, "ctx");
+  }
+
+  return 0;
+}
+
+
 void e_initialize_lua() {
   l = luaL_newstate();
   luaL_openlibs(l);
@@ -1305,6 +1358,14 @@ void e_initialize_lua() {
   lua_setglobal(l, "get_coords");
   lua_pushcfunction(l, e_lua_get_bounding);
   lua_setglobal(l, "get_bounding_rect");
+  lua_pushcfunction(l, e_lua_get_text);
+  lua_setglobal(l, "get_text");
+  lua_pushcfunction(l, e_lua_get_tab);
+  lua_setglobal(l, "get_tab");
+  lua_pushcfunction(l, e_lua_set_tab);
+  lua_setglobal(l, "set_tab");
+  lua_pushcfunction(l, e_lua_open);
+  lua_setglobal(l, "open");
 }
 
 
@@ -1326,6 +1387,8 @@ char* e_lua_eval(e_context* ctx, char* str) {
     lua_pop(l, lua_gettop(l));
   }
 
+  lua_getglobal(l, "ctx");
+  ctx = lua_touserdata(l, lua_gettop(l));
   return ret;
 }
 #endif

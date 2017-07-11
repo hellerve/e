@@ -16,7 +16,6 @@
 #include "clipboard.h"
 
 #define E_VERSION "0.0.1"
-#define E_TAB_WIDTH 4
 
 #ifndef CTRL
 #define CTRL(k) ((k) & 0x1f)
@@ -82,7 +81,7 @@ enum e_mode {
 void e_clear_screen(e_context*);
 e_context* e_process_key(e_context*);
 void e_die(const char*);
-void e_open(e_context*, char*);
+void e_open(e_context*, const char*);
 void e_insert_char(e_context*, int);
 void e_insert_char_at(e_context*, int, int, int);
 void e_del_char(e_context*);
