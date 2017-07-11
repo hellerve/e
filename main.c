@@ -2,6 +2,9 @@
 #include <execinfo.h>
 #include "src/editor.h"
 
+#define STRINGIFY2(X) #X
+#define STRINGIFY(X) STRINGIFY2(X)
+
 e_context* GLOB;
 syntax** stx;
 
@@ -50,12 +53,13 @@ int main(int argc, char** argv) {
 
   e_set_status_msg(GLOB, "HELP: :q = quit");
 
+  #ifdef WITH_LUA
+  e_set_status_msg(GLOB, e_lua_run_file(GLOB, (char*) STRINGIFY(ERC)));
+  #endif
+
   while(1) {
     e_clear_screen(GLOB);
     GLOB = e_process_key(GLOB);
-    // for reasons I'm not quite certain of this fixes the screen flicker.
-    // TODO: investigate better technique
-    msleep(20);
   }
   return 0;
 }

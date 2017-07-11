@@ -213,6 +213,10 @@ void e_clear_screen(e_context* ctx) {
 
   write(STDOUT_FILENO, ab.b, ab.len);
   ab_free(&ab);
+
+  // for reasons I'm not quite certain of this fixes the screen flicker.
+  // TODO: investigate better technique
+  msleep(20);
 }
 
 
@@ -1320,6 +1324,16 @@ int e_lua_get_tab(lua_State* l) {
 }
 
 
+int e_lua_get_filename(lua_State* l) {
+  lua_getglobal(l, "ctx");
+  e_context* ctx = lua_touserdata(l, lua_gettop(l));
+
+  lua_pushstring(l, ctx->filename);
+
+  return 1;
+}
+
+
 int e_lua_open(lua_State* l) {
   if (lua_gettop(l) == 1) {
     const char* name = lua_tostring(l, 1);
@@ -1369,6 +1383,8 @@ void e_initialize_lua() {
   lua_setglobal(l, "get_tab");
   lua_pushcfunction(l, e_lua_set_tab);
   lua_setglobal(l, "set_tab");
+  lua_pushcfunction(l, e_lua_get_filename);
+  lua_setglobal(l, "get_filename");
   lua_pushcfunction(l, e_lua_open);
   lua_setglobal(l, "open");
 }
@@ -1394,6 +1410,21 @@ char* e_lua_eval(e_context* ctx, char* str) {
 
   lua_getglobal(l, "ctx");
   ctx = lua_touserdata(l, lua_gettop(l));
+  return ret;
+}
+
+char* e_lua_run_file(e_context* ctx, const char* file) {
+  char* ret = malloc(100*sizeof(char));
+  if (!l) e_initialize_lua();
+
+  lua_pushlightuserdata(l, ctx);
+  lua_setglobal(l, "ctx");
+
+  luaL_dofile(l, file);
+
+  snprintf(ret, 100, "%s", lua_tostring(l, -1));
+  lua_pop(l, lua_gettop(l));
+
   return ret;
 }
 #endif

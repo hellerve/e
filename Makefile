@@ -1,6 +1,7 @@
 TARGET=e
 BUILDDIR=bin/
 STXDIR=$(HOME)/.estx
+ERC=$(HOME)/.erc
 PREFIX=/usr/local/bin/
 SOURCES=$(wildcard src/*.c)
 MAIN=main.c
@@ -21,7 +22,7 @@ install: all
 	install $(BUILDDIR)$(TARGET) $(PREFIX)$(TARGET)
 
 install_lua:
-	make install CFLAGS+="-DWITH_LUA -L./vendor/lua-5.3.4/src -llua"
+	make install CFLAGS+="-DWITH_LUA -L./vendor/lua-5.3.4/src -llua -DERC=\"$(ERC)\""
 
 uninstall:
 	rm -rf $(PREFIX)$(TARGET)
