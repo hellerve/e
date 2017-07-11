@@ -1326,12 +1326,17 @@ int e_lua_open(lua_State* l) {
 
     lua_getglobal(l, "ctx");
     e_context* ctx = lua_touserdata(l, lua_gettop(l));
-    syntax** stx = ctx->stxes;
 
-    e_context_free(ctx);
+    int i;
+    for (i = 0; i < ctx->nrows; i++) {
+      e_free_row(&ctx->row[i]);
+    }
+    free(ctx->row);
+    free(ctx->filename);
+    ctx->row = NULL;
+    ctx->filename = NULL;
+    ctx->nrows = 0;
 
-    ctx = e_setup();
-    e_set_highlighting(ctx, stx);
     e_open(ctx, name);
 
     lua_pushlightuserdata(l, ctx);
