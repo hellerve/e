@@ -213,10 +213,6 @@ void e_clear_screen(e_context* ctx) {
 
   write(STDOUT_FILENO, ab.b, ab.len);
   ab_free(&ab);
-
-  // for reasons I'm not quite certain of this fixes the screen flicker.
-  // TODO: investigate better technique
-  msleep(20);
 }
 
 
@@ -1472,6 +1468,7 @@ char* e_lua_run_file(e_context* ctx, const char* file) {
   return ret;
 }
 
+
 int e_lua_get_field(const char* key) {
   lua_pushstring(l, key);
   lua_gettable(l, -2);
@@ -1480,6 +1477,7 @@ int e_lua_get_field(const char* key) {
 
   return 0;
 }
+
 
 int e_lua_meta_command(e_context* ctx, const char* cmd) {
   if (!l) return 1;
@@ -1492,6 +1490,7 @@ int e_lua_meta_command(e_context* ctx, const char* cmd) {
 
   return lua_pcall(l, 0, 1, 0);
 }
+
 
 int e_lua_key(e_context* ctx, int key) {
   if (!l) return 1;
@@ -1506,5 +1505,10 @@ int e_lua_key(e_context* ctx, int key) {
   if (e_lua_get_field(x)) return 1;
 
   return lua_pcall(l, 0, 1, 0);
+}
+
+
+void e_lua_free() {
+  lua_close(l);
 }
 #endif
