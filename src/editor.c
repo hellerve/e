@@ -1398,6 +1398,22 @@ int e_lua_open(lua_State* l) {
 }
 
 
+int e_lua_prompt(lua_State* l) {
+  if (lua_gettop(l) == 1) {
+    const char* prompt = lua_tostring(l, 1);
+
+    lua_getglobal(l, "ctx");
+    e_context* ctx = lua_touserdata(l, lua_gettop(l));
+
+    char* c = e_prompt(ctx, prompt, NULL);
+
+    lua_pushstring(l, c);
+  }
+
+  return 1;
+}
+
+
 void e_initialize_lua() {
   l = luaL_newstate();
   luaL_openlibs(l);
@@ -1426,6 +1442,8 @@ void e_initialize_lua() {
   lua_setglobal(l, "get_filename");
   lua_pushcfunction(l, e_lua_open);
   lua_setglobal(l, "open");
+  lua_pushcfunction(l, e_lua_prompt);
+  lua_setglobal(l, "prompt");
   lua_newtable(l);
   lua_setglobal(l, "keys");
   lua_newtable(l);
