@@ -54,7 +54,10 @@ int main(int argc, char** argv) {
   e_set_status_msg(GLOB, "HELP: :q = quit");
 
   #ifdef WITH_LUA
-  e_set_status_msg(GLOB, e_lua_run_file(GLOB, (char*) STRINGIFY(ERC)));
+  char* evald = e_lua_run_file(GLOB, (char*) STRINGIFY(ERC));
+
+  if (evald) e_set_status_msg(GLOB, evald);
+  free(evald);
   #endif
 
   while(1) {

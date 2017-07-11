@@ -518,7 +518,10 @@ e_context* e_initial(e_context* ctx, int c) {
       e_context* new = e_context_copy(ctx);
       new->history = ctx;
       char* lua_exp = e_prompt(new, "Type Lua expression: %s", NULL);
-      e_set_status_msg(new, "%s", e_lua_eval(new, lua_exp));
+      char* evald   = e_lua_eval(new, lua_exp);
+      if (evald) e_set_status_msg(new, "%s", evald);
+      free(lua_exp);
+      free(evald);
       return new;
       #else
       e_set_status_msg(ctx, "e wasn't compiled with Lua support.");
@@ -1223,7 +1226,14 @@ static void addret(lua_State *l, char* str) {
 
 
 int e_lua_message(lua_State* l) {
-  if (lua_gettop(l) == 1) return 1;
+  if (lua_gettop(l) == 1) {
+    const char* x = lua_tostring(l, 1);
+
+    lua_getglobal(l, "ctx");
+    e_context* ctx = lua_touserdata(l, lua_gettop(l));
+
+    e_set_status_msg(ctx, "lua console: %s", x);
+  }
 
   return 0;
 }
@@ -1237,6 +1247,21 @@ int e_lua_insert(lua_State* l) {
     e_context* ctx = lua_touserdata(l, lua_gettop(l));
 
     for (int i = 0; i < strlen(x); i++) e_insert_char(ctx, x[i]);
+  }
+
+  return 0;
+}
+
+
+int e_lua_insertn(lua_State* l) {
+  if (lua_gettop(l) == 1) {
+    const char* x = lua_tostring(l, 1);
+
+    lua_getglobal(l, "ctx");
+    e_context* ctx = lua_touserdata(l, lua_gettop(l));
+
+    for (int i = 0; i < strlen(x); i++) e_insert_char(ctx, x[i]);
+    e_insert_newline(ctx);
   }
 
   return 0;
@@ -1277,8 +1302,8 @@ int e_lua_get_coords(lua_State* l) {
   lua_getglobal(l, "ctx");
   e_context* ctx = lua_touserdata(l, lua_gettop(l));
 
-  lua_pushnumber(l, ctx->cy);
   lua_pushnumber(l, ctx->cx);
+  lua_pushnumber(l, ctx->cy);
 
   return 2;
 }
@@ -1288,8 +1313,8 @@ int e_lua_get_bounding(lua_State* l) {
   lua_getglobal(l, "ctx");
   e_context* ctx = lua_touserdata(l, lua_gettop(l));
 
-  lua_pushnumber(l, ctx->rows);
   lua_pushnumber(l, ctx->cols);
+  lua_pushnumber(l, ctx->rows);
 
   return 2;
 }
@@ -1369,6 +1394,8 @@ void e_initialize_lua() {
   lua_setglobal(l, "message");
   lua_pushcfunction(l, e_lua_insert);
   lua_setglobal(l, "insert");
+  lua_pushcfunction(l, e_lua_insertn);
+  lua_setglobal(l, "insertn");
   lua_pushcfunction(l, e_lua_delete);
   lua_setglobal(l, "delete");
   lua_pushcfunction(l, e_lua_move);
@@ -1404,7 +1431,6 @@ char* e_lua_eval(e_context* ctx, char* str) {
     snprintf(ret, 100, "lua can't execute expression: %s.", lua_tostring(l, -1));
     lua_pop(l, 1);
   } else {
-    snprintf(ret, 100, "%s", lua_tostring(l, -1));
     lua_pop(l, lua_gettop(l));
   }
 
@@ -1420,9 +1446,7 @@ char* e_lua_run_file(e_context* ctx, const char* file) {
   lua_pushlightuserdata(l, ctx);
   lua_setglobal(l, "ctx");
 
-  luaL_dofile(l, file);
-
-  snprintf(ret, 100, "%s", lua_tostring(l, -1));
+  if(luaL_dofile(l, file)) snprintf(ret, 100, "%s", lua_tostring(l, -1));
   lua_pop(l, lua_gettop(l));
 
   return ret;

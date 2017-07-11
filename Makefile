@@ -23,6 +23,7 @@ install: all
 
 install_lua:
 	make install CFLAGS+="-DWITH_LUA -L./vendor/lua-5.3.4/src -llua -DERC=\"$(ERC)\""
+	touch ~/.erc
 
 uninstall:
 	rm -rf $(PREFIX)$(TARGET)
