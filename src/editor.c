@@ -509,8 +509,10 @@ e_context* e_initial(e_context* ctx, int c) {
     }
     case 'l': {
       #ifdef WITH_LUA
-      char* lua_exp = e_prompt(ctx, "Type Lua expression: %s", NULL);
-      e_set_status_msg(ctx, "%s", e_lua_eval(ctx, lua_exp));
+      e_context* new = e_context_copy(ctx);
+      new->history = ctx;
+      char* lua_exp = e_prompt(new, "Type Lua expression: %s", NULL);
+      e_set_status_msg(new, "%s", e_lua_eval(new, lua_exp));
       #else
       e_set_status_msg(ctx, "e wasn't compiled with Lua support.");
       #endif
@@ -1212,11 +1214,13 @@ static void addret(lua_State *l, char* str) {
   else lua_pop(l, 2);
 }
 
+
 int e_lua_message(lua_State* l) {
   if (lua_gettop(l) == 1) return 1;
 
   return 0;
 }
+
 
 int e_lua_insert(lua_State* l) {
   if (lua_gettop(l) == 1) {
@@ -1231,6 +1235,37 @@ int e_lua_insert(lua_State* l) {
   return 0;
 }
 
+
+int e_lua_delete(lua_State* l) {
+  if (lua_gettop(l) == 1) {
+    int x = lua_tonumber(l, 1);
+
+    lua_getglobal(l, "ctx");
+    e_context* ctx = lua_touserdata(l, lua_gettop(l));
+
+    for (int i = 0; i < x; i++) e_del_char(ctx);
+  }
+
+  return 0;
+}
+
+
+int e_lua_move(lua_State* l) {
+  if (lua_gettop(l) == 2) {
+    int x = lua_tonumber(l, 2);
+    int y = lua_tonumber(l, 1);
+
+    lua_getglobal(l, "ctx");
+    e_context* ctx = lua_touserdata(l, lua_gettop(l));
+
+    ctx->cx = x;
+    ctx->cy = y;
+  }
+
+  return 0;
+}
+
+
 void e_initialize_lua() {
   l = luaL_newstate();
   luaL_openlibs(l);
@@ -1239,7 +1274,12 @@ void e_initialize_lua() {
   lua_setglobal(l, "message");
   lua_pushcfunction(l, e_lua_insert);
   lua_setglobal(l, "insert");
+  lua_pushcfunction(l, e_lua_delete);
+  lua_setglobal(l, "delete");
+  lua_pushcfunction(l, e_lua_move);
+  lua_setglobal(l, "move");
 }
+
 
 char* e_lua_eval(e_context* ctx, char* str) {
   char* ret = malloc(100*sizeof(char));
