@@ -533,6 +533,16 @@ e_context* e_initial(e_context* ctx, int c) {
       e_set_status_msg(ctx, "e wasn't compiled with Lua support.");
       #endif
     }
+    #ifdef WITH_LUA
+    default: {
+      e_context* new = e_context_copy(ctx);
+      new->history = ctx;
+
+      e_lua_key(new, c);
+
+      return new;
+    }
+    #endif
   }
   return ctx;
 }
@@ -1445,8 +1455,6 @@ char* e_lua_eval(e_context* ctx, char* str) {
     lua_pop(l, lua_gettop(l));
   }
 
-  lua_getglobal(l, "ctx");
-  ctx = lua_touserdata(l, lua_gettop(l));
   return ret;
 }
 
@@ -1476,8 +1484,26 @@ int e_lua_get_field(const char* key) {
 int e_lua_meta_command(e_context* ctx, const char* cmd) {
   if (!l) return 1;
 
+  lua_pushlightuserdata(l, ctx);
+  lua_setglobal(l, "ctx");
+
   lua_getglobal(l, "meta_commands");
   if (e_lua_get_field(cmd)) return 1;
+
+  return lua_pcall(l, 0, 1, 0);
+}
+
+int e_lua_key(e_context* ctx, int key) {
+  if (!l) return 1;
+  char x[2];
+  x[0] = (char) key;
+  x[1] = '\0';
+
+  lua_pushlightuserdata(l, ctx);
+  lua_setglobal(l, "ctx");
+
+  lua_getglobal(l, "keys");
+  if (e_lua_get_field(x)) return 1;
 
   return lua_pcall(l, 0, 1, 0);
 }
