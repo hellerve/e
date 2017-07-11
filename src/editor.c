@@ -513,6 +513,7 @@ e_context* e_initial(e_context* ctx, int c) {
       new->history = ctx;
       char* lua_exp = e_prompt(new, "Type Lua expression: %s", NULL);
       e_set_status_msg(new, "%s", e_lua_eval(new, lua_exp));
+      return new;
       #else
       e_set_status_msg(ctx, "e wasn't compiled with Lua support.");
       #endif
@@ -1266,6 +1267,28 @@ int e_lua_move(lua_State* l) {
 }
 
 
+int e_lua_get_coords(lua_State* l) {
+  lua_getglobal(l, "ctx");
+  e_context* ctx = lua_touserdata(l, lua_gettop(l));
+
+  lua_pushnumber(l, ctx->cy);
+  lua_pushnumber(l, ctx->cx);
+
+  return 2;
+}
+
+
+int e_lua_get_bounding(lua_State* l) {
+  lua_getglobal(l, "ctx");
+  e_context* ctx = lua_touserdata(l, lua_gettop(l));
+
+  lua_pushnumber(l, ctx->rows);
+  lua_pushnumber(l, ctx->cols);
+
+  return 2;
+}
+
+
 void e_initialize_lua() {
   l = luaL_newstate();
   luaL_openlibs(l);
@@ -1278,6 +1301,10 @@ void e_initialize_lua() {
   lua_setglobal(l, "delete");
   lua_pushcfunction(l, e_lua_move);
   lua_setglobal(l, "move");
+  lua_pushcfunction(l, e_lua_get_coords);
+  lua_setglobal(l, "get_coords");
+  lua_pushcfunction(l, e_lua_get_bounding);
+  lua_setglobal(l, "get_bounding_rect");
 }
 
 
