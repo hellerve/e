@@ -337,8 +337,14 @@ void meta(e_context* ctx) {
     ctx->cy = a-1;
   }
   else {
+#ifdef WITH_LUA
+    if (e_lua_meta_command(ctx, c)) {
+#endif
+      e_set_status_msg(ctx, "Unknown meta command.");
+#ifdef WITH_LUA
+    }
+#endif
     free(c);
-    e_set_status_msg(ctx, "Unknown meta command");
   }
 }
 
@@ -1414,6 +1420,10 @@ void e_initialize_lua() {
   lua_setglobal(l, "get_filename");
   lua_pushcfunction(l, e_lua_open);
   lua_setglobal(l, "open");
+  lua_newtable(l);
+  lua_setglobal(l, "keys");
+  lua_newtable(l);
+  lua_setglobal(l, "meta_commands");
 }
 
 
@@ -1431,6 +1441,7 @@ char* e_lua_eval(e_context* ctx, char* str) {
     snprintf(ret, 100, "lua can't execute expression: %s.", lua_tostring(l, -1));
     lua_pop(l, 1);
   } else {
+    snprintf(ret, 100, "%s", lua_tostring(l, -1));
     lua_pop(l, lua_gettop(l));
   }
 
@@ -1439,6 +1450,7 @@ char* e_lua_eval(e_context* ctx, char* str) {
   return ret;
 }
 
+
 char* e_lua_run_file(e_context* ctx, const char* file) {
   char* ret = malloc(100*sizeof(char));
   if (!l) e_initialize_lua();
@@ -1446,9 +1458,27 @@ char* e_lua_run_file(e_context* ctx, const char* file) {
   lua_pushlightuserdata(l, ctx);
   lua_setglobal(l, "ctx");
 
-  if(luaL_dofile(l, file)) snprintf(ret, 100, "%s", lua_tostring(l, -1));
+  if (luaL_dofile(l, file)) snprintf(ret, 100, "%s", lua_tostring(l, -1));
   lua_pop(l, lua_gettop(l));
 
   return ret;
+}
+
+int e_lua_get_field(const char* key) {
+  lua_pushstring(l, key);
+  lua_gettable(l, -2);
+
+  if (lua_isnil(l, -1)) return 1;
+
+  return 0;
+}
+
+int e_lua_meta_command(e_context* ctx, const char* cmd) {
+  if (!l) return 1;
+
+  lua_getglobal(l, "meta_commands");
+  if (e_lua_get_field(cmd)) return 1;
+
+  return lua_pcall(l, 0, 1, 0);
 }
 #endif

@@ -113,5 +113,6 @@ lua_State *l;
 
 char* e_lua_eval(e_context*, char*);
 char* e_lua_run_file(e_context*, const char*);
+int   e_lua_meta_command(e_context*, const char*);
 #endif
 
