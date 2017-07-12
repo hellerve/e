@@ -1,0 +1,46 @@
+set_tab(2) -- sets tab with
+
+-- registers a meta command under `:hi` that inserts hi and notifies you
+meta_commands["hi"] = function()
+  insertn("hi")
+  message("hi inserted")
+end
+
+-- registers a custom key under `%` that implements word count
+keys["%"] = function()
+  s = get_text()
+  count = 0
+
+  for word in s:gmatch("%w+") do count = count + 1 end
+
+  message(count .. " words")
+end
+
+-- lists all meta commands
+function get_meta_commands()
+  res = ""
+
+  for k, _ in pairs(meta_commands) do
+    res = res .. k .. ", "
+  end
+
+  return res
+end
+
+-- lists all custom keys
+function get_keys()
+  res = ""
+
+  for k, _ in pairs(keys) do
+    res = res .. k .. ", "
+  end
+
+  return res
+end
+
+-- registers a meta command `:help` that lists all meta commands and custom keys
+meta_commands["help"] = function()
+  s = "meta commands: " .. get_meta_commands() .. "custom keys: " .. get_keys()
+
+  message(s:sub(1, -3))
+end
