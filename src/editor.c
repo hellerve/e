@@ -138,6 +138,7 @@ void e_set_status_msg(e_context* ctx, const char* fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
   vsnprintf(ctx->statusmsg, sizeof(ctx->statusmsg), fmt, ap);
+  ctx->statusmsg[79] = '\0';
   va_end(ap);
   ctx->statusmsg_time = time(NULL);
 }
@@ -566,7 +567,7 @@ char* e_rows_to_str(e_context* ctx, int* len) {
   int j;
   for (j = 0; j < ctx->nrows; j++) total += ctx->row[j].size + 1;
   *len = total;
-  char* buf = malloc(total*sizeof(char));
+  char* buf = malloc(total*sizeof(char)+1);
   char* p = buf;
   for (j = 0; j < ctx->nrows; j++) {
     memcpy(p, ctx->row[j].str, ctx->row[j].size);
@@ -574,6 +575,7 @@ char* e_rows_to_str(e_context* ctx, int* len) {
     *p = '\n';
     p++;
   }
+  buf[total] = '\0';
   return buf;
 }
 
@@ -1338,7 +1340,10 @@ int e_lua_get_text(lua_State* l) {
   e_context* ctx = lua_touserdata(l, lua_gettop(l));
   int len;
 
-  lua_pushstring(l, e_rows_to_str(ctx, &len));
+  char* str = e_rows_to_str(ctx, &len);
+  lua_pushstring(l, str);
+
+  free(str);
 
   return 1;
 }
@@ -1453,7 +1458,7 @@ void e_initialize_lua() {
 
 
 char* e_lua_eval(e_context* ctx, char* str) {
-  char* ret = malloc(100*sizeof(char));
+  char* ret = malloc(80*sizeof(char));
   if (!l) e_initialize_lua();
 
   lua_pushlightuserdata(l, ctx);
@@ -1463,27 +1468,30 @@ char* e_lua_eval(e_context* ctx, char* str) {
   addret(l, str);
 
   if (lua_pcall(l, 0, 1, 0)) {
-    snprintf(ret, 100, "lua can't execute expression: %s.", lua_tostring(l, -1));
+    snprintf(ret, 80, "lua can't execute expression: %s.", lua_tostring(l, -1));
     lua_pop(l, 1);
   } else {
-    snprintf(ret, 100, "%s", lua_tostring(l, -1));
+    snprintf(ret, 80, "%s", lua_tostring(l, -1));
     lua_pop(l, lua_gettop(l));
   }
 
+  ret[79] = '\0';
   return ret;
 }
 
 
 char* e_lua_run_file(e_context* ctx, const char* file) {
-  char* ret = malloc(100*sizeof(char));
+  char* ret = malloc(80*sizeof(char));
   if (!l) e_initialize_lua();
 
   lua_pushlightuserdata(l, ctx);
   lua_setglobal(l, "ctx");
 
-  if (luaL_dofile(l, file)) snprintf(ret, 100, "%s", lua_tostring(l, -1));
+  if (luaL_dofile(l, file)) snprintf(ret, 80, "%s", lua_tostring(l, -1));
+  else snprintf(ret, 80, "");
   lua_pop(l, lua_gettop(l));
 
+  ret[79] = '\0';
   return ret;
 }
 
