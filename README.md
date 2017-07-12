@@ -31,7 +31,7 @@ It can be scripted through Lua.
 ```
 git clone https://github.com/hellerve/e
 cd e
-make install
+make install # install_lua for Lua support
 ```
 
 ## Usage
