@@ -520,6 +520,7 @@ e_context* e_initial(e_context* ctx, int c) {
       e_context* new = e_context_copy(ctx);
       new->history = ctx;
       char* lua_exp = e_prompt(new, "Type Lua expression: %s", NULL);
+      if (!lua_exp) return new;
       char* evald   = e_lua_eval(new, lua_exp);
       if (evald) e_set_status_msg(new, "%s", evald);
       free(lua_exp);
