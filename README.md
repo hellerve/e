@@ -4,12 +4,13 @@ Braindead editor. Feels like Vim, only simpler. Inspired by
 [kilo](https://github.com/antirez/kilo), of course, and a large
 swath of the code is similar.
 
-It's in alpha, but I use it occasionally. Might unexpectedly break.
+It can be scripted through Lua.
 
 [![asciicast](https://asciinema.org/a/e164s5tnu3okht44go6uhyju4.png)](https://asciinema.org/a/e164s5tnu3okht44go6uhyju4)
 
 ## Features
 
+- Scripting through intuitive Lua interface
 - Incremental search (and replace)
 - Multiple modi (similar to Vim)
 - Mnemonic movement (feels like Vim, just different enough for you to be frustrated)
@@ -95,6 +96,14 @@ works even if the matched string is part of a longer word. The values are regexe
 
 If you provide a second regex (must by divided by a newline), `e` assumes that everything
 between the two matches should be colored (useful for e.g. multiline comments).
+
+### Scripting through Lua
+
+The editor has scripting capabilities in Lua. Thus far I've only documented them
+in [a blog post](http://blog.veitheller.de/Editing_Revisited.html), but this
+post should give you a good overview of how to write Lua scripts for `e`. There
+is also an example [`.erc`](https://github.com/hellerve/e/blob/master/.erc)
+file in the repository that you can look at for inspiration.
 
 That's it!
 

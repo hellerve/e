@@ -1,5 +1,7 @@
 #include "editor.h"
 
+int E_TAB_WIDTH = 4;
+
 void disable_raw_mode(e_context* ctx) {
   if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &ctx->orig) == -1) e_die("tcsetattr");
 }
@@ -136,6 +138,7 @@ void e_set_status_msg(e_context* ctx, const char* fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
   vsnprintf(ctx->statusmsg, sizeof(ctx->statusmsg), fmt, ap);
+  ctx->statusmsg[79] = '\0';
   va_end(ap);
   ctx->statusmsg_time = time(NULL);
 }
@@ -331,8 +334,14 @@ void meta(e_context* ctx) {
     ctx->cy = a-1;
   }
   else {
+#ifdef WITH_LUA
+    if (e_lua_meta_command(ctx, c)) {
+#endif
+      e_set_status_msg(ctx, "Unknown meta command.");
+#ifdef WITH_LUA
+    }
+#endif
     free(c);
-    e_set_status_msg(ctx, "Unknown meta command");
   }
 }
 
@@ -507,6 +516,31 @@ e_context* e_initial(e_context* ctx, int c) {
       free(str);
       return new;
     }
+    case 'l': {
+      #ifdef WITH_LUA
+      e_context* new = e_context_copy(ctx);
+      new->history = ctx;
+      char* lua_exp = e_prompt(new, "Type Lua expression: %s", NULL);
+      if (!lua_exp) return new;
+      char* evald   = e_lua_eval(new, lua_exp);
+      if (evald) e_set_status_msg(new, "%s", evald);
+      free(lua_exp);
+      free(evald);
+      return new;
+      #else
+      e_set_status_msg(ctx, "e wasn't compiled with Lua support.");
+      #endif
+    }
+    #ifdef WITH_LUA
+    default: {
+      e_context* new = e_context_copy(ctx);
+      new->history = ctx;
+
+      e_lua_key(new, c);
+
+      return new;
+    }
+    #endif
   }
   return ctx;
 }
@@ -533,7 +567,7 @@ char* e_rows_to_str(e_context* ctx, int* len) {
   int j;
   for (j = 0; j < ctx->nrows; j++) total += ctx->row[j].size + 1;
   *len = total;
-  char* buf = malloc(total*sizeof(char));
+  char* buf = malloc(total*sizeof(char)+1);
   char* p = buf;
   for (j = 0; j < ctx->nrows; j++) {
     memcpy(p, ctx->row[j].str, ctx->row[j].size);
@@ -541,6 +575,7 @@ char* e_rows_to_str(e_context* ctx, int* len) {
     *p = '\n';
     p++;
   }
+  buf[total] = '\0';
   return buf;
 }
 
@@ -842,7 +877,7 @@ void e_del_char_at(e_context* ctx, int cx, int cy) {
 }
 
 
-void e_open(e_context* ctx, char* filename) {
+void e_open(e_context* ctx, const char* filename) {
   free(ctx->filename);
   ctx->filename = strdup(filename);
 
@@ -1171,27 +1206,336 @@ void e_set_highlighting(e_context* ctx, syntax** stx) {
 
 
 e_context*  e_setup() {
-e_context* ctx = malloc(sizeof(e_context));
-if (tcgetattr(STDIN_FILENO, &ctx->orig) == -1) e_die("tcgetattr");
+  e_context* ctx = malloc(sizeof(e_context));
+  if (tcgetattr(STDIN_FILENO, &ctx->orig) == -1) e_die("tcgetattr");
 
-write(STDOUT_FILENO, "\x1b""7\x1b[?47h", 8);
-e_get_win_size(ctx);
-enable_raw_mode(ctx);
-ctx->rx = 0;
-ctx->cx = 0;
-ctx->cy = 0;
-ctx->nrows = 0;
-ctx->row = NULL;
-ctx->filename = NULL;
-ctx->coff = 0;
-ctx->roff = 0;
-ctx->rows -= 2;
-ctx->statusmsg[0] = '\0';
-ctx->statusmsg_time = 0;
-ctx->dirty = 0;
-ctx->mode = INITIAL;
-ctx->history = NULL;
-ctx->stx = NULL;
-ctx->stxes = NULL;
-return ctx;
+  write(STDOUT_FILENO, "\x1b""7\x1b[?47h", 8);
+  e_get_win_size(ctx);
+  enable_raw_mode(ctx);
+  ctx->rx = 0;
+  ctx->cx = 0;
+  ctx->cy = 0;
+  ctx->nrows = 0;
+  ctx->row = NULL;
+  ctx->filename = NULL;
+  ctx->coff = 0;
+  ctx->roff = 0;
+  ctx->rows -= 2;
+  ctx->statusmsg[0] = '\0';
+  ctx->statusmsg_time = 0;
+  ctx->dirty = 0;
+  ctx->mode = INITIAL;
+  ctx->history = NULL;
+  ctx->stx = NULL;
+  ctx->stxes = NULL;
+  return ctx;
 }
+
+#ifdef WITH_LUA
+
+static void addret(lua_State *l, char* str) {
+  const char *r = lua_pushfstring(l, "return %s;", str);
+  if (luaL_loadbuffer(l, r, strlen(r), "=stdin") == LUA_OK) lua_remove(l, -2);
+  else lua_pop(l, 2);
+}
+
+
+int e_lua_message(lua_State* l) {
+  if (lua_gettop(l) == 1) {
+    const char* x = lua_tostring(l, 1);
+
+    lua_getglobal(l, "ctx");
+    e_context* ctx = lua_touserdata(l, lua_gettop(l));
+
+    e_set_status_msg(ctx, "lua console: %s", x);
+  }
+
+  return 0;
+}
+
+
+int e_lua_insert(lua_State* l) {
+  if (lua_gettop(l) == 1) {
+    const char* x = lua_tostring(l, 1);
+
+    lua_getglobal(l, "ctx");
+    e_context* ctx = lua_touserdata(l, lua_gettop(l));
+
+    for (int i = 0; i < strlen(x); i++) e_insert_char(ctx, x[i]);
+  }
+
+  return 0;
+}
+
+
+int e_lua_insertn(lua_State* l) {
+  if (lua_gettop(l) == 1) {
+    const char* x = lua_tostring(l, 1);
+
+    lua_getglobal(l, "ctx");
+    e_context* ctx = lua_touserdata(l, lua_gettop(l));
+
+    for (int i = 0; i < strlen(x); i++) e_insert_char(ctx, x[i]);
+    e_insert_newline(ctx);
+  }
+
+  return 0;
+}
+
+
+int e_lua_delete(lua_State* l) {
+  if (lua_gettop(l) == 1) {
+    int x = lua_tonumber(l, 1);
+
+    lua_getglobal(l, "ctx");
+    e_context* ctx = lua_touserdata(l, lua_gettop(l));
+
+    for (int i = 0; i < x; i++) e_del_char(ctx);
+  }
+
+  return 0;
+}
+
+
+int e_lua_move(lua_State* l) {
+  if (lua_gettop(l) == 2) {
+    int x = lua_tonumber(l, 2);
+    int y = lua_tonumber(l, 1);
+
+    lua_getglobal(l, "ctx");
+    e_context* ctx = lua_touserdata(l, lua_gettop(l));
+
+    ctx->cx = x;
+    ctx->cy = y;
+  }
+
+  return 0;
+}
+
+
+int e_lua_get_coords(lua_State* l) {
+  lua_getglobal(l, "ctx");
+  e_context* ctx = lua_touserdata(l, lua_gettop(l));
+
+  lua_pushnumber(l, ctx->cx);
+  lua_pushnumber(l, ctx->cy);
+
+  return 2;
+}
+
+
+int e_lua_get_bounding(lua_State* l) {
+  lua_getglobal(l, "ctx");
+  e_context* ctx = lua_touserdata(l, lua_gettop(l));
+
+  lua_pushnumber(l, ctx->cols);
+  lua_pushnumber(l, ctx->rows);
+
+  return 2;
+}
+
+
+int e_lua_get_text(lua_State* l) {
+  lua_getglobal(l, "ctx");
+  e_context* ctx = lua_touserdata(l, lua_gettop(l));
+  int len;
+
+  char* str = e_rows_to_str(ctx, &len);
+  lua_pushstring(l, str);
+
+  free(str);
+
+  return 1;
+}
+
+
+int e_lua_set_tab(lua_State* l) {
+  if (lua_gettop(l) == 1) {
+    int x = lua_tonumber(l, 1);
+
+    E_TAB_WIDTH = x;
+  }
+
+  return 0;
+}
+
+
+int e_lua_get_tab(lua_State* l) {
+  lua_pushnumber(l, E_TAB_WIDTH);
+
+  return 1;
+}
+
+
+int e_lua_get_filename(lua_State* l) {
+  lua_getglobal(l, "ctx");
+  e_context* ctx = lua_touserdata(l, lua_gettop(l));
+
+  lua_pushstring(l, ctx->filename);
+
+  return 1;
+}
+
+
+int e_lua_open(lua_State* l) {
+  if (lua_gettop(l) == 1) {
+    const char* name = lua_tostring(l, 1);
+
+    lua_getglobal(l, "ctx");
+    e_context* ctx = lua_touserdata(l, lua_gettop(l));
+
+    int i;
+    for (i = 0; i < ctx->nrows; i++) {
+      e_free_row(&ctx->row[i]);
+    }
+    free(ctx->row);
+    free(ctx->filename);
+    ctx->row = NULL;
+    ctx->filename = NULL;
+    ctx->nrows = 0;
+
+    e_open(ctx, name);
+
+    lua_pushlightuserdata(l, ctx);
+    lua_setglobal(l, "ctx");
+  }
+
+  return 0;
+}
+
+
+int e_lua_prompt(lua_State* l) {
+  if (lua_gettop(l) == 1) {
+    const char* prompt = lua_tostring(l, 1);
+
+    lua_getglobal(l, "ctx");
+    e_context* ctx = lua_touserdata(l, lua_gettop(l));
+
+    char* c = e_prompt(ctx, prompt, NULL);
+
+    lua_pushstring(l, c);
+  }
+
+  return 1;
+}
+
+
+void e_initialize_lua() {
+  l = luaL_newstate();
+  luaL_openlibs(l);
+
+  lua_pushcfunction(l, e_lua_message);
+  lua_setglobal(l, "message");
+  lua_pushcfunction(l, e_lua_insert);
+  lua_setglobal(l, "insert");
+  lua_pushcfunction(l, e_lua_insertn);
+  lua_setglobal(l, "insertn");
+  lua_pushcfunction(l, e_lua_delete);
+  lua_setglobal(l, "delete");
+  lua_pushcfunction(l, e_lua_move);
+  lua_setglobal(l, "move");
+  lua_pushcfunction(l, e_lua_get_coords);
+  lua_setglobal(l, "get_coords");
+  lua_pushcfunction(l, e_lua_get_bounding);
+  lua_setglobal(l, "get_bounding_rect");
+  lua_pushcfunction(l, e_lua_get_text);
+  lua_setglobal(l, "get_text");
+  lua_pushcfunction(l, e_lua_get_tab);
+  lua_setglobal(l, "get_tab");
+  lua_pushcfunction(l, e_lua_set_tab);
+  lua_setglobal(l, "set_tab");
+  lua_pushcfunction(l, e_lua_get_filename);
+  lua_setglobal(l, "get_filename");
+  lua_pushcfunction(l, e_lua_open);
+  lua_setglobal(l, "open");
+  lua_pushcfunction(l, e_lua_prompt);
+  lua_setglobal(l, "prompt");
+  lua_newtable(l);
+  lua_setglobal(l, "keys");
+  lua_newtable(l);
+  lua_setglobal(l, "meta_commands");
+}
+
+
+char* e_lua_eval(e_context* ctx, char* str) {
+  char* ret = malloc(80*sizeof(char));
+  if (!l) e_initialize_lua();
+
+  lua_pushlightuserdata(l, ctx);
+  lua_setglobal(l, "ctx");
+
+  luaL_loadbuffer(l, str, strlen(str), "=stdin");
+  addret(l, str);
+
+  if (lua_pcall(l, 0, 1, 0)) {
+    snprintf(ret, 80, "lua can't execute expression: %s.", lua_tostring(l, -1));
+    lua_pop(l, 1);
+  } else {
+    snprintf(ret, 80, "%s", lua_tostring(l, -1));
+    lua_pop(l, lua_gettop(l));
+  }
+
+  ret[79] = '\0';
+  return ret;
+}
+
+
+char* e_lua_run_file(e_context* ctx, const char* file) {
+  char* ret = malloc(80*sizeof(char));
+  if (!l) e_initialize_lua();
+
+  lua_pushlightuserdata(l, ctx);
+  lua_setglobal(l, "ctx");
+
+  if (luaL_dofile(l, file)) snprintf(ret, 80, "%s", lua_tostring(l, -1));
+  else snprintf(ret, 80, "");
+  lua_pop(l, lua_gettop(l));
+
+  ret[79] = '\0';
+  return ret;
+}
+
+
+int e_lua_get_field(const char* key) {
+  lua_pushstring(l, key);
+  lua_gettable(l, -2);
+
+  if (lua_isnil(l, -1)) return 1;
+
+  return 0;
+}
+
+
+int e_lua_meta_command(e_context* ctx, const char* cmd) {
+  if (!l) return 1;
+
+  lua_pushlightuserdata(l, ctx);
+  lua_setglobal(l, "ctx");
+
+  lua_getglobal(l, "meta_commands");
+  if (e_lua_get_field(cmd)) return 1;
+
+  return lua_pcall(l, 0, 1, 0);
+}
+
+
+int e_lua_key(e_context* ctx, int key) {
+  if (!l) return 1;
+  char x[2];
+  x[0] = (char) key;
+  x[1] = '\0';
+
+  lua_pushlightuserdata(l, ctx);
+  lua_setglobal(l, "ctx");
+
+  lua_getglobal(l, "keys");
+  if (e_lua_get_field(x)) return 1;
+
+  return lua_pcall(l, 0, 1, 0);
+}
+
+
+void e_lua_free() {
+  lua_close(l);
+}
+#endif

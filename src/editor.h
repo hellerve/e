@@ -16,7 +16,6 @@
 #include "clipboard.h"
 
 #define E_VERSION "0.0.1"
-#define E_TAB_WIDTH 4
 
 #ifndef CTRL
 #define CTRL(k) ((k) & 0x1f)
@@ -82,7 +81,7 @@ enum e_mode {
 void e_clear_screen(e_context*);
 e_context* e_process_key(e_context*);
 void e_die(const char*);
-void e_open(e_context*, char*);
+void e_open(e_context*, const char*);
 void e_insert_char(e_context*, int);
 void e_insert_char_at(e_context*, int, int, int);
 void e_del_char(e_context*);
@@ -104,3 +103,18 @@ e_context* e_setup();
 
 void enable_raw_mode(e_context*);
 void disable_raw_mode(e_context*);
+
+#ifdef WITH_LUA
+#include "../vendor/lua-5.3.4/src/lua.h"
+#include "../vendor/lua-5.3.4/src/lauxlib.h"
+#include "../vendor/lua-5.3.4/src/lualib.h"
+
+lua_State *l;
+
+char* e_lua_eval(e_context*, char*);
+char* e_lua_run_file(e_context*, const char*);
+int   e_lua_meta_command(e_context*, const char*);
+int   e_lua_key(e_context*, int);
+void  e_lua_free();
+#endif
+
