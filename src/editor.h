@@ -29,7 +29,7 @@ typedef struct {
   int rsize;
   char* render;
   char* hl;
-  int open_pattern;
+  short open_pattern;
 } e_row;
 
 typedef struct e_context {
