@@ -1393,6 +1393,8 @@ int e_lua_open(lua_State* l) {
     ctx->row = NULL;
     ctx->filename = NULL;
     ctx->nrows = 0;
+    ctx->cx = 0;
+    ctx->cy = 0;
 
     e_open(ctx, name);
 
