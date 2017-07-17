@@ -6,6 +6,13 @@ int utf8len(const char *s) {
   return len;
 }
 
+int utf8len_to(const char *s, int to) {
+  int len = 0;
+  int i = 0;
+  while(*s && i++ < to) len += (*(s++)&0xC0)!=0x80;
+  return len;
+}
+
 short isutf8cont(char c) {
   return (c&0xC0)==0x80;
 }

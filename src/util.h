@@ -12,6 +12,7 @@
 #endif
 
 int utf8len(const char*);
+int utf8len_to(const char*, int);
 short isutf8cont(char);
 short isnum(char*);
 short issep(char);
