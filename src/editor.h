@@ -55,6 +55,8 @@ typedef struct e_context {
 
   syntax* stx;
   syntax** stxes;
+
+  unsigned short tab_width;
 } e_context;
 
 typedef void (*e_cb)(e_context*, char*, int);

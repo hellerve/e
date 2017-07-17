@@ -1,7 +1,5 @@
 #include "editor.h"
 
-int E_TAB_WIDTH = 4;
-
 void disable_raw_mode(e_context* ctx) {
   if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &ctx->orig) == -1) e_die("tcsetattr");
 }
@@ -155,11 +153,11 @@ void e_get_win_size(e_context* ctx) {
 }
 
 
-int e_rx_to_cx(e_row* row, int rx) {
+int e_rx_to_cx(e_row* row, int rx, int tab_width) {
   int cur_rx = 0;
   int cx;
   for (cx = 0; cx < row->size; cx++) {
-    if (row->str[cx] == '\t') cur_rx += (E_TAB_WIDTH - 1) - (cur_rx % E_TAB_WIDTH);
+    if (row->str[cx] == '\t') cur_rx += (tab_width - 1) - (cur_rx % tab_width);
     cur_rx++;
     if (cur_rx > rx) return cx;
   }
@@ -167,12 +165,12 @@ int e_rx_to_cx(e_row* row, int rx) {
 }
 
 
-int e_cx_to_rx(e_row* row, int cx){
+int e_cx_to_rx(e_row* row, int cx, int tab_width) {
   int rx = 0;
   int j;
 
   for (j = 0; j < cx; j++) {
-    if (row->str[j] == '\t') rx += (E_TAB_WIDTH - 1) - (rx % E_TAB_WIDTH);
+    if (row->str[j] == '\t') rx += (tab_width - 1) - (rx % tab_width);
     if (!isutf8cont(row->str[j])) rx++;
   }
   return rx;
@@ -182,7 +180,7 @@ int e_cx_to_rx(e_row* row, int cx){
 
 void e_scroll(e_context* ctx) {
   ctx->rx = 0;
-  if (ctx->cy < ctx->nrows) ctx->rx = e_cx_to_rx(&ctx->row[ctx->cy], ctx->cx);
+  if (ctx->cy < ctx->nrows) ctx->rx = e_cx_to_rx(&ctx->row[ctx->cy], ctx->cx, ctx->tab_width);
 
   if (ctx->cy < ctx->roff) ctx->roff = ctx->cy;
   if (ctx->cy >= ctx->roff + ctx->rows) {
@@ -386,7 +384,7 @@ e_context* e_edit(e_context* ctx, int c) {
     case '\t': {
       e_context* new = e_context_copy(ctx);
       new->history = ctx;
-      for (i = 0; i < E_TAB_WIDTH; i++) e_insert_char(new, ' ');
+      for (i = 0; i < ctx->tab_width; i++) e_insert_char(new, ' ');
       return new;
     }
     default: {
@@ -706,12 +704,12 @@ void e_update_row(e_context* ctx, e_row* row) {
   for (j = 0; j < row->size; j++) if (row->str[j] == '\t') tabs++;
 
   free(row->render);
-  row->render = malloc((row->size+tabs*E_TAB_WIDTH+1)*sizeof(char));
+  row->render = malloc((row->size+tabs*ctx->tab_width+1)*sizeof(char));
 
   for (j = 0; j < row->size; j++) {
     if (row->str[j] == '\t') {
       row->render[i++] = ' ';
-      while (i % E_TAB_WIDTH) row->render[i++] = ' ';
+      while (i % ctx->tab_width) row->render[i++] = ' ';
     } else {
       row->render[i++] = row->str[j];
     }
@@ -981,7 +979,7 @@ void e_find_cb(e_context* ctx, char* query, int key) {
     if (!regexec(&re, row->render, (size_t) 1, &rem, 0)) {
       prev = cur;
       ctx->cy = cur;
-      ctx->cx = e_rx_to_cx(row, (int) rem.rm_so);
+      ctx->cx = e_rx_to_cx(row, (int) rem.rm_so, ctx->tab_width);
       ctx->roff = ctx->nrows;
 
       saved_line = cur;
@@ -1129,6 +1127,7 @@ e_context* e_context_copy(e_context* ctx) {
   new->rx = ctx->rx;
   new->cy = ctx->cy;
   new->mode = ctx->mode;
+  new->tab_width = ctx->tab_width;
   if (ctx->filename) new->filename = strdup(ctx->filename);
   else new->filename = NULL;
   new->nrows = ctx->nrows;
@@ -1228,6 +1227,7 @@ e_context*  e_setup() {
   ctx->history = NULL;
   ctx->stx = NULL;
   ctx->stxes = NULL;
+  ctx->tab_width = 4;
   return ctx;
 }
 
@@ -1353,7 +1353,10 @@ int e_lua_set_tab(lua_State* l) {
   if (lua_gettop(l) == 1) {
     int x = lua_tonumber(l, 1);
 
-    E_TAB_WIDTH = x;
+    lua_getglobal(l, "ctx");
+    e_context* ctx = lua_touserdata(l, lua_gettop(l));
+
+    ctx->tab_width = x;
   }
 
   return 0;
@@ -1361,7 +1364,9 @@ int e_lua_set_tab(lua_State* l) {
 
 
 int e_lua_get_tab(lua_State* l) {
-  lua_pushnumber(l, E_TAB_WIDTH);
+  lua_getglobal(l, "ctx");
+  e_context* ctx = lua_touserdata(l, lua_gettop(l));
+  lua_pushnumber(l, ctx->tab_width);
 
   return 1;
 }
