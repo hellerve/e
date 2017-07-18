@@ -80,6 +80,7 @@ void e_draw_rows(e_context* ctx, append_buf* ab) {
           color_append(color, ab, &c[i], 1);
           current_color = color;
         }
+        if (i+1 < len && !isutf8cont(c[i+1])) color_append(NORMAL, ab, "", 0);
       }
       color_append(NORMAL, ab, "", 0);
     }
