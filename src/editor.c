@@ -258,9 +258,6 @@ void e_move_cursor(e_context* ctx, int c) {
 }
 
 
-#undef MOVE_UTF8
-
-
 int e_read_key() {
   int nread;
   char c;
@@ -519,7 +516,7 @@ e_context* e_initial(e_context* ctx, int c) {
       return new;
     }
     case 'l': {
-      #ifdef WITH_LUA
+#ifdef WITH_LUA
       e_context* new = e_context_copy(ctx);
       new->history = ctx;
       char* lua_exp = e_prompt(new, "Type Lua expression: %s", NULL);
@@ -529,11 +526,11 @@ e_context* e_initial(e_context* ctx, int c) {
       free(lua_exp);
       free(evald);
       return new;
-      #else
+#else
       e_set_status_msg(ctx, "e wasn't compiled with Lua support.");
-      #endif
+#endif
     }
-    #ifdef WITH_LUA
+#ifdef WITH_LUA
     default: {
       e_context* new = e_context_copy(ctx);
       new->history = ctx;
@@ -542,7 +539,7 @@ e_context* e_initial(e_context* ctx, int c) {
 
       return new;
     }
-    #endif
+#endif
   }
   return ctx;
 }
@@ -725,8 +722,9 @@ void e_update_row(e_context* ctx, e_row* row) {
   e_update_hl(ctx, row);
   if (open_pattern != row->open_pattern) {
     for (i = row->idx+1; i < ctx->nrows; i++) {
+      if (ctx->row[i].open_pattern != open_pattern) break;
+      ctx->row[i].open_pattern = -1;
       e_update_hl(ctx, &ctx->row[i]);
-      if (ctx->row[i].open_pattern != row->open_pattern) break;
     }
   }
 }
@@ -776,6 +774,7 @@ void e_del_row(e_context* ctx, int at) {
     for (i = at; i <= ctx->nrows-1; i++) {
       if (ctx->row[i].open_pattern != open_pattern) break;
       ctx->row[i].open_pattern = -1;
+      e_update_hl(ctx, &ctx->row[i]);
     }
   }
   for (i = at; i <= ctx->nrows-1; i++) ctx->row[i].idx--;
