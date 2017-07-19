@@ -226,7 +226,7 @@ void e_move_cursor(e_context* ctx, int c) {
       break;
     case 'd':
     case ARROW_RIGHT:
-      if (ctx->cx) { if (isutf8cont(ctx->row[ctx->cy].render[ctx->cx++])) ctx->cx+=2; }
+      if (ctx->cx < rowl) { if (isutf8cont(ctx->row[ctx->cy].render[ctx->cx++])) ctx->cx+=2; }
       else if (ctx->cy < ctx->nrows-1) { ctx->cy++; ctx->cx = 0; }
       break;
     case 'w':
