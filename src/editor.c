@@ -221,12 +221,12 @@ void e_move_cursor(e_context* ctx, int c) {
   switch (c) {
     case 'a':
     case ARROW_LEFT:
-      if (ctx->cx) ctx->cx--;
+      if (ctx->cx) { if (isutf8cont(ctx->row[ctx->cy].render[--ctx->cx])) ctx->cx-=2; }
       else if (ctx->cy > 0) ctx->cx = ctx->row[--ctx->cy].size;
       break;
     case 'd':
     case ARROW_RIGHT:
-      if (ctx->cx < rowl) ctx->cx++;
+      if (ctx->cx) { if (isutf8cont(ctx->row[ctx->cy].render[ctx->cx++])) ctx->cx+=2; }
       else if (ctx->cy < ctx->nrows-1) { ctx->cy++; ctx->cx = 0; }
       break;
     case 'w':
@@ -256,6 +256,9 @@ void e_move_cursor(e_context* ctx, int c) {
     ctx->cx = rowl;
   }
 }
+
+
+#undef MOVE_UTF8
 
 
 int e_read_key() {
