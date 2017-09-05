@@ -6,7 +6,7 @@ comment|no_sep: /\*.*\*/
 comment|no_sep: /\*.*
                  .*\*/
 predefined: (null|true|false)
-keyword: (break|case|ctch|class|const|continue|debugger|default|delete|do|else|export|extends|finally|for|from|function|if|import|in|instanceof|new|return|super|switch|this|throw|try|typeof|var|void|while|with|yield)
+keyword: (break|case|catch|class|const|continue|debugger|default|delete|do|else|export|extends|finally|for|from|function|if|import|in|instanceof|new|return|super|switch|this|throw|try|typeof|var|void|while|with|yield)
 keyword: (enum|implements|interface|let|package|private|protected|public|static)
 keyword: await
 type: (Object|Number|Array|Boolean|String|Error|Date|JSON|Math|Regexp)
