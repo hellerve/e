@@ -23,7 +23,7 @@ void syntax_read_extensions(syntax* c, FILE* f, char* line) {
   regcomp(reg, line, REG_EXTENDED);
 
   while (fpeek(f) == ' ' || fpeek(f) == '\t') {
-    fgets(line, MAX_LINE_WIDTH, f);
+    (void)fgets(line, MAX_LINE_WIDTH, f);
     ln = strlen(line)-1;
     line[ln] = '\0'; // replace newline
     reg = realloc(reg, sizeof(regex_t) * ++regl);
@@ -52,7 +52,7 @@ void syntax_read_pattern(syntax* c, FILE* f, char* key, char* value) {
   if (err) exit(err);
 
   if (fpeek(f) == ' ' || fpeek(f) == '\t') {
-    fgets(line, MAX_LINE_WIDTH, f);
+    (void)fgets(line, MAX_LINE_WIDTH, f);
     char* l = strtriml(line);
     ln = strlen(l)-1;
     memmove(l+1, l, ln);
