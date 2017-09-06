@@ -490,10 +490,12 @@ e_context* e_initial(e_context* ctx, int c) {
       return new;
     }
     case 'h': {
-      if (ctx->nrows < 2) return ctx;
       e_context* new = e_context_copy(ctx);
       new->history = ctx;
       e_clipboard_copy(new->row[new->cy].str);
+      if (new->nrows == 1) {
+        e_insert_row(new, 1, (char*) "", 0);
+      }
       e_del_row(new, new->cy);
       return new;
     }
@@ -789,6 +791,7 @@ void e_del_row(e_context* ctx, int at) {
   for (i = at; i <= ctx->nrows-1; i++) ctx->row[i].idx--;
   ctx->nrows--;
   if (ctx->cy >= ctx->nrows) ctx->cy--;
+  if (ctx->cx >= ctx->row[ctx->cy].size) ctx->cx = ctx->row[ctx->cy].size;
   ctx->dirty = 1;
 }
 
