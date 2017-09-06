@@ -69,7 +69,7 @@ void e_draw_rows(e_context* ctx, append_buf* ab) {
         color_append(NORMAL, ab, welcome, len);
       }
     } else {
-      ansi_append(ab, "K", 3);
+      ansi_append(ab, "K", 1);
       int len = ctx->row[filerow].rsize - ctx->coff;
       if (len < 0) len = 0;
       if (len > ctx->cols) len = ctx->cols;
