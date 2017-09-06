@@ -20,15 +20,22 @@ void enable_raw_mode(e_context* ctx) {
 }
 
 
+/* sigh */
+void write_wrapped(int file, const char* str, int len) {
+   ssize_t x = write(file, str, len);
+   (void) x; 
+}
+
+
 void e_die(const char* s) {
-  write(STDOUT_FILENO, "\x1b[2J\x1b[?47l\x1b""8", 12);
+  write_wrapped(STDOUT_FILENO, "\x1b[2J\x1b[?47l\x1b""8", 12);
   perror(s);
   exit(1);
 }
 
 
 void e_exit() {
-  write(STDOUT_FILENO, "\x1b[2J\x1b[?47l\x1b""8", 12);
+  write_wrapped(STDOUT_FILENO, "\x1b[2J\x1b[?47l\x1b""8", 12);
   exit(0);
 }
 
@@ -211,7 +218,7 @@ void e_clear_screen(e_context* ctx) {
   ansi_append(&ab, buf, strlen(buf));
   ansi_append(&ab, "?25h", 4);
 
-  write(STDOUT_FILENO, ab.b, ab.len);
+  write_wrapped(STDOUT_FILENO, ab.b, ab.len);
   ab_free(&ab);
 }
 
@@ -1211,7 +1218,7 @@ e_context*  e_setup() {
   e_context* ctx = malloc(sizeof(e_context));
   if (tcgetattr(STDIN_FILENO, &ctx->orig) == -1) e_die("tcgetattr");
 
-  write(STDOUT_FILENO, "\x1b""7\x1b[?47h", 8);
+  write_wrapped(STDOUT_FILENO, "\x1b""7\x1b[?47h", 8);
   e_get_win_size(ctx);
   enable_raw_mode(ctx);
   ctx->rx = 0;
