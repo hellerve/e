@@ -3,7 +3,7 @@ extensions: .*\.hs$
 comment|no_sep: --.*$
 keyword: (!|-<|-<|->|::|<-|=>|#|@|[\||\|]|_|as|case|of|class|data(\s+family)?|default|deriving|do|forall|foreign|hiding|if|then|else|import|infix(l|r)?|instance|let|in|mdo|module|newtype|proc|qualified|rec|type(\s+family)?|where)
 type: [A-Z][a-zA-Z]*
-comment|no_sep: {-.*-}
-comment|no_sep: {-.*
-                 .*-}
+comment|no_sep: \{-.*-\}
+comment|no_sep: \{-.*
+                 .*-\}
 pragma: `.*`
