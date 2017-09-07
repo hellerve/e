@@ -119,4 +119,3 @@ int   e_lua_meta_command(e_context*, const char*);
 int   e_lua_key(e_context*, int);
 void  e_lua_free();
 #endif
-
