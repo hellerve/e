@@ -1,6 +1,9 @@
 bin/
 *.o
+# Lua files
 lua
+luac
+liblua*
 # Code::Blocks project files
 *.cbp
 *.layout

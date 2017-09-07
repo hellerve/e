@@ -1603,7 +1603,7 @@ char* e_lua_run_file(e_context* ctx, const char* file) {
   lua_setglobal(l, "ctx");
 
   if (luaL_dofile(l, file)) snprintf(ret, 80, "%s", lua_tostring(l, -1));
-  else snprintf(ret, 80, "");
+  else ret[0] = '\0';
   lua_pop(l, lua_gettop(l));
 
   ret[79] = '\0';
