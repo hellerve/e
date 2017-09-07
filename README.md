@@ -34,6 +34,10 @@ cd e
 make install # install_lua for Lua support
 ```
 
+If there are any problems—particularly with Lua—, please refer to the
+[Troubleshooting](https://github.com/hellerve/e/wiki/Troubleshooting) page on
+the wiki.
+
 ## Usage
 
 There are two major modes, `init` and `edit`. `edit` mode works like a normal
