@@ -22,8 +22,8 @@ void enable_raw_mode(e_context* ctx) {
 
 /* sigh */
 void write_wrapped(int file, const char* str, int len) {
-   ssize_t x = write(file, str, len);
-   (void) x; 
+  ssize_t x = write(file, str, len);
+  (void) x; 
 }
 
 
@@ -186,7 +186,6 @@ int e_cx_to_rx(e_row* row, int cx, int tab_width) {
 }
 
 
-
 void e_scroll(e_context* ctx) {
   ctx->rx = 0;
   if (ctx->cy < ctx->nrows) ctx->rx = e_cx_to_rx(&ctx->row[ctx->cy], ctx->cx, ctx->tab_width);
@@ -344,7 +343,7 @@ void meta(e_context* ctx) {
 #ifdef WITH_LUA
     if (e_lua_meta_command(ctx, c)) {
 #endif
-      e_set_status_msg(ctx, "Unknown meta command.");
+    e_set_status_msg(ctx, "Unknown meta command.");
 #ifdef WITH_LUA
     }
 #endif
@@ -560,12 +559,12 @@ e_context* e_process_key(e_context* ctx) {
   int c = e_read_key();
 
   switch (ctx->mode) {
-     case EDIT:
-       ctx = e_edit(ctx, c);
-       break;
-     case INITIAL:
-       ctx = e_initial(ctx, c);
-       break;
+    case EDIT:
+      ctx = e_edit(ctx, c);
+      break;
+    case INITIAL:
+      ctx = e_initial(ctx, c);
+      break;
   }
 
   return ctx;
