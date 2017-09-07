@@ -28,7 +28,7 @@ It can be scripted through Lua.
 
 ## Installation
 
-```
+```sh
 git clone https://github.com/hellerve/e
 cd e
 make install # install_lua for Lua support
@@ -107,6 +107,6 @@ file in the repository that you can look at for inspiration.
 
 That's it!
 
-<hr/>
+----
 
 Have fun!
