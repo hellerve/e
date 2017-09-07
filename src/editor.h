@@ -57,6 +57,10 @@ typedef struct e_context {
   syntax** stxes;
 
   unsigned short tab_width;
+  char up;
+  char down;
+  char left;
+  char right;
 } e_context;
 
 typedef void (*e_cb)(e_context*, char*, int);
@@ -119,4 +123,3 @@ int   e_lua_meta_command(e_context*, const char*);
 int   e_lua_key(e_context*, int);
 void  e_lua_free();
 #endif
-

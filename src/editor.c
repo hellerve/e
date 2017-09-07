@@ -22,8 +22,8 @@ void enable_raw_mode(e_context* ctx) {
 
 /* sigh */
 void write_wrapped(int file, const char* str, int len) {
-   ssize_t x = write(file, str, len);
-   (void) x; 
+  ssize_t x = write(file, str, len);
+  (void) x; 
 }
 
 
@@ -186,7 +186,6 @@ int e_cx_to_rx(e_row* row, int cx, int tab_width) {
 }
 
 
-
 void e_scroll(e_context* ctx) {
   ctx->rx = 0;
   if (ctx->cy < ctx->nrows) ctx->rx = e_cx_to_rx(&ctx->row[ctx->cy], ctx->cx, ctx->tab_width);
@@ -226,22 +225,22 @@ void e_clear_screen(e_context* ctx) {
 
 void e_move_cursor(e_context* ctx, int c) {
   int rowl = (ctx->cy >= ctx->nrows) ? 0 : ctx->row[ctx->cy].size;
+  if (c == ctx->up) c = ARROW_UP;
+  if (c == ctx->down) c = ARROW_DOWN;
+  if (c == ctx->left) c = ARROW_LEFT;
+  if (c == ctx->right) c = ARROW_RIGHT;
   switch (c) {
-    case 'a':
     case ARROW_LEFT:
       if (ctx->cx) { if (isutf8cont(ctx->row[ctx->cy].render[--ctx->cx])) ctx->cx-=2; }
       else if (ctx->cy > 0) ctx->cx = ctx->row[--ctx->cy].size;
       break;
-    case 'd':
     case ARROW_RIGHT:
       if (ctx->cx < rowl) { if (isutf8cont(ctx->row[ctx->cy].render[ctx->cx++])) ctx->cx+=2; }
       else if (ctx->cy < ctx->nrows-1) { ctx->cy++; ctx->cx = 0; }
       break;
-    case 'w':
     case ARROW_UP:
       if (ctx->cy) ctx->cy--;
       break;
-    case 's':
     case ARROW_DOWN:
       if (ctx->cy < ctx->nrows-1) ctx->cy++;
       break;
@@ -344,7 +343,7 @@ void meta(e_context* ctx) {
 #ifdef WITH_LUA
     if (e_lua_meta_command(ctx, c)) {
 #endif
-      e_set_status_msg(ctx, "Unknown meta command.");
+    e_set_status_msg(ctx, "Unknown meta command.");
 #ifdef WITH_LUA
     }
 #endif
@@ -423,10 +422,6 @@ e_context* e_initial(e_context* ctx, int c) {
     case PAGE_DOWN:
     case HOME_KEY:
     case END_KEY:
-    case 'w':
-    case 's':
-    case 'a':
-    case 'd':
      e_move_cursor(ctx, c);
      break;
     case 'e':
@@ -539,18 +534,23 @@ e_context* e_initial(e_context* ctx, int c) {
       return new;
 #else
       e_set_status_msg(ctx, "e wasn't compiled with Lua support.");
+      break;
 #endif
     }
-#ifdef WITH_LUA
     default: {
+      if (c == ctx->up || c == ctx->down || c == ctx->left || c == ctx->right) {
+        e_move_cursor(ctx, c);
+        break;
+      }
+#ifdef WITH_LUA
       e_context* new = e_context_copy(ctx);
       new->history = ctx;
 
       e_lua_key(new, c);
 
       return new;
-    }
 #endif
+    }
   }
   return ctx;
 }
@@ -560,12 +560,12 @@ e_context* e_process_key(e_context* ctx) {
   int c = e_read_key();
 
   switch (ctx->mode) {
-     case EDIT:
-       ctx = e_edit(ctx, c);
-       break;
-     case INITIAL:
-       ctx = e_initial(ctx, c);
-       break;
+    case EDIT:
+      ctx = e_edit(ctx, c);
+      break;
+    case INITIAL:
+      ctx = e_initial(ctx, c);
+      break;
   }
 
   return ctx;
@@ -1144,6 +1144,10 @@ e_context* e_context_copy(e_context* ctx) {
   new->cy = ctx->cy;
   new->mode = ctx->mode;
   new->tab_width = ctx->tab_width;
+  new->up = ctx->up;
+  new->down = ctx->down;
+  new->left = ctx->left;
+  new->right = ctx->right;
   if (ctx->filename) new->filename = strdup(ctx->filename);
   else new->filename = NULL;
   new->nrows = ctx->nrows;
@@ -1244,6 +1248,10 @@ e_context*  e_setup() {
   ctx->stx = NULL;
   ctx->stxes = NULL;
   ctx->tab_width = 4;
+  ctx->up = 'w';
+  ctx->down = 's';
+  ctx->left = 'a';
+  ctx->right = 'd';
   return ctx;
 }
 
@@ -1443,6 +1451,74 @@ int e_lua_prompt(lua_State* l) {
 }
 
 
+#define e_lua_move(dir) {\
+  if (lua_gettop(l) == 1) {\
+    char x = lua_tostring(l, 1)[0];\
+    lua_getglobal(l, "ctx");\
+    e_context* ctx = lua_touserdata(l, lua_gettop(l));\
+    ctx->dir = x;\
+  }\
+  return 0;\
+}
+
+
+int e_lua_set_left(lua_State* l) {
+  e_lua_move(left);
+}
+
+
+int e_lua_set_right(lua_State* l) {
+  e_lua_move(right);
+}
+
+
+int e_lua_set_up(lua_State* l) {
+  e_lua_move(up);
+}
+
+
+int e_lua_set_down(lua_State* l) {
+  e_lua_move(down);
+}
+
+
+#undef e_lua_move
+
+
+#define e_lua_get_move(dir) {\
+  lua_getglobal(l, "ctx");\
+  e_context* ctx = lua_touserdata(l, lua_gettop(l));\
+  char x[2];\
+  x[0] = ctx->dir;\
+  x[1] = '\0';\
+  lua_pushstring(l, x);\
+  return 1;\
+}
+
+
+int e_lua_get_left(lua_State* l) {
+  e_lua_get_move(left);
+}
+
+
+int e_lua_get_right(lua_State* l) {
+  e_lua_get_move(right);
+}
+
+
+int e_lua_get_up(lua_State* l) {
+  e_lua_get_move(up);
+}
+
+
+int e_lua_get_down(lua_State* l) {
+  e_lua_get_move(down);
+}
+
+
+#undef e_lua_get_move
+
+
 void e_initialize_lua() {
   l = luaL_newstate();
   luaL_openlibs(l);
@@ -1467,6 +1543,22 @@ void e_initialize_lua() {
   lua_setglobal(l, "get_tab");
   lua_pushcfunction(l, e_lua_set_tab);
   lua_setglobal(l, "set_tab");
+  lua_pushcfunction(l, e_lua_get_left);
+  lua_setglobal(l, "get_left");
+  lua_pushcfunction(l, e_lua_set_left);
+  lua_setglobal(l, "set_left");
+  lua_pushcfunction(l, e_lua_get_right);
+  lua_setglobal(l, "get_right");
+  lua_pushcfunction(l, e_lua_set_right);
+  lua_setglobal(l, "set_right");
+  lua_pushcfunction(l, e_lua_get_up);
+  lua_setglobal(l, "get_up");
+  lua_pushcfunction(l, e_lua_set_up);
+  lua_setglobal(l, "set_up");
+  lua_pushcfunction(l, e_lua_get_down);
+  lua_setglobal(l, "get_down");
+  lua_pushcfunction(l, e_lua_set_down);
+  lua_setglobal(l, "set_down");
   lua_pushcfunction(l, e_lua_get_filename);
   lua_setglobal(l, "get_filename");
   lua_pushcfunction(l, e_lua_open);

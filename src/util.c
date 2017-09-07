@@ -38,49 +38,49 @@ short issep(char c) {
 
 
 char fpeek(FILE *f) {
-    char c;
+  char c;
 
-    c = fgetc(f);
-    ungetc(c, f);
+  c = fgetc(f);
+  ungetc(c, f);
 
-    return c;
+  return c;
 }
 
 
 char *strsub(char* str, char *pat, char *sub) {
-    char* res;
-    char* ins;
-    char* tmp;
-    int lpat;
-    int lsub;
-    int lfront;
-    int i;
+  char* res;
+  char* ins;
+  char* tmp;
+  int lpat;
+  int lsub;
+  int lfront;
+  int i;
 
-    if (!str || !pat) return NULL;
+  if (!str || !pat) return NULL;
 
-    lpat = strlen(pat);
-    if (!lpat) return NULL;
-    if (!sub) sub = (char*) "";
+  lpat = strlen(pat);
+  if (!lpat) return NULL;
+  if (!sub) sub = (char*) "";
 
-    lsub = strlen(sub);
+  lsub = strlen(sub);
 
-    ins = str;
-    for (i = 0; (tmp = strstr(ins, pat)); ++i) ins = tmp + lpat;
-    if (!i) return NULL;
+  ins = str;
+  for (i = 0; (tmp = strstr(ins, pat)); ++i) ins = tmp + lpat;
+  if (!i) return NULL;
 
-    tmp = res = malloc(strlen(str) + (lsub - lpat) * i + 1);
+  tmp = res = malloc(strlen(str) + (lsub - lpat) * i + 1);
 
-    if (!res) return NULL;
+  if (!res) return NULL;
 
-    while (i--) {
-        ins = strstr(str, pat);
-        lfront = ins - str;
-        tmp = strncpy(tmp, str, lfront) + lfront;
-        tmp = strcpy(tmp, sub) + lsub;
-        str += lfront + lpat;
-    }
-    strcpy(tmp, str);
-    return res;
+  while (i--) {
+    ins = strstr(str, pat);
+    lfront = ins - str;
+    tmp = strncpy(tmp, str, lfront) + lfront;
+    tmp = strcpy(tmp, sub) + lsub;
+    str += lfront + lpat;
+  }
+  strcpy(tmp, str);
+  return res;
 }
 
 
@@ -92,26 +92,26 @@ char* strtriml(char* str) {
 
 
 int strcmpr(char* str, char* suffix) {
-    size_t strl;
-    size_t suffixl;
+  size_t strl;
+  size_t suffixl;
 
-    if (!str || !suffix) return 0;
+  if (!str || !suffix) return 0;
 
-    strl = strlen(str);
-    suffixl = strlen(suffix);
+  strl = strlen(str);
+  suffixl = strlen(suffix);
 
-    if (suffixl > strl) return 0;
-    return strncmp(str+strl-suffixl, suffix, suffixl) == 0;
+  if (suffixl > strl) return 0;
+  return strncmp(str+strl-suffixl, suffix, suffixl) == 0;
 }
 
 
 void msleep(int ms) {
 #ifdef WIN32
-    Sleep(ms);
+  Sleep(ms);
 #else
-    struct timespec ts;
-    ts.tv_sec = ms / 1000;
-    ts.tv_nsec = (ms % 1000) * 1000000;
-    nanosleep(&ts, NULL);
+  struct timespec ts;
+  ts.tv_sec = ms / 1000;
+  ts.tv_nsec = (ms % 1000) * 1000000;
+  nanosleep(&ts, NULL);
 #endif
 }
