@@ -12,6 +12,7 @@ all: main.c syntax
 	$(CC) $(MAIN) $(SOURCES) -DSTXDIR=\"$(STXDIR)\" -o $(BUILDDIR)$(TARGET) $(CFLAGS)
 
 lua:
+	cd ./vendor/lua-5.3.4/src && make clean && make generic
 	make all CFLAGS+="-DWITH_LUA -L./vendor/lua-5.3.4/src -llua"
 
 syntax:
@@ -22,6 +23,7 @@ install: all
 	install $(BUILDDIR)$(TARGET) $(PREFIX)$(TARGET)
 
 install_lua:
+	cd ./vendor/lua-5.3.4/src && make clean && make generic
 	make install CFLAGS+="-DWITH_LUA -L./vendor/lua-5.3.4/src -llua -DERC=\"$(ERC)\""
 	touch ~/.erc
 
