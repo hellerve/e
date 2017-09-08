@@ -9,9 +9,16 @@ LUA_FLAGS=
 LUA_OPT=generic
 override CFLAGS+=-Werror -Wall -g -fPIC -O2 -DNDEBUG -ftrapv -Wfloat-equal -Wundef -Wwrite-strings -Wuninitialized -pedantic -std=c11
 
+OS := $(shell uname)
+
+ifeq ($(OS),$(filter $(OS), FreeBSD OpenBSD NetBSD))
+CADDFLAG := -lexecinfo
+endif
+
+
 all: main.c syntax
 	mkdir -p $(BUILDDIR)
-	$(CC) $(MAIN) $(SOURCES) -DSTXDIR=\"$(STXDIR)\" -o $(BUILDDIR)$(TARGET) $(CFLAGS)
+	$(CC) $(MAIN) $(SOURCES) -DSTXDIR=\"$(STXDIR)\" -o $(BUILDDIR)$(TARGET) $(CFLAGS) $(CADDFLAG)
 
 lua:
 	cd ./vendor/lua-5.3.4/src && make clean && make $(LUA_OPT)
