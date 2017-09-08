@@ -11,7 +11,6 @@ override CFLAGS+=-Werror -Wall -g -fPIC -O2 -DNDEBUG -ftrapv -Wfloat-equal -Wund
 
 OS := $(shell uname)
 
-#ifeq ($(OS),FreeBSD)
 ifeq ($(OS),$(filter $(OS), FreeBSD OpenBSD NetBSD))
 CADDFLAG := -lexecinfo
 endif
