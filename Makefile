@@ -18,11 +18,13 @@ endif
 
 ifeq ($(DE),gnome)
 CADDFLAG += `pkg-config --libs --cflags gtk+-3.0` `pkg-config --libs gtk+-3.0`
+DE_FLAG := -Dgnome
 endif
 
 all: main.c syntax
+	$(info DE is $(DE))
 	mkdir -p $(BUILDDIR)
-	$(CC) $(MAIN) $(SOURCES) -DSTXDIR=\"$(STXDIR)\" -o $(BUILDDIR)$(TARGET) $(CFLAGS) $(CADDFLAG)
+	$(CC) $(MAIN) $(SOURCES) -DSTXDIR=\"$(STXDIR)\" -o $(BUILDDIR)$(TARGET) $(CFLAGS) $(CADDFLAG) $(DE_FLAG)
 
 lua:
 	cd ./vendor/lua-5.3.4/src && make clean && make $(LUA_OPT)
