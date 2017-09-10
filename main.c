@@ -34,8 +34,16 @@ void exitf() {
 #endif
 }
 
+#ifdef __unix__
+#include <gtk/gtk.h>
+#endif
+
 
 int main(int argc, char** argv) {
+#ifdef __unix__
+	gtk_init(&argc, &argv);
+#endif
+	
   stx = syntax_init((char*) STXDIR);
   GLOB = e_setup();
 

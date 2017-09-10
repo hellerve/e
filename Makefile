@@ -10,11 +10,15 @@ LUA_OPT=generic
 override CFLAGS+=-Werror -Wall -g -fPIC -O2 -DNDEBUG -ftrapv -Wfloat-equal -Wundef -Wwrite-strings -Wuninitialized -pedantic -std=c11
 
 OS := $(shell uname)
+DE := $(shell echo $(DESKTOP_SESSION))
 
 ifeq ($(OS),$(filter $(OS), FreeBSD OpenBSD NetBSD))
-CADDFLAG := -lexecinfo
+CADDFLAG += -lexecinfo
 endif
 
+ifeq ($(DE),gnome)
+CADDFLAG += `pkg-config --libs --cflags gtk+-3.0` `pkg-config --libs gtk+-3.0`
+endif
 
 all: main.c syntax
 	mkdir -p $(BUILDDIR)
