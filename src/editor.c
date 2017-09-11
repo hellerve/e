@@ -23,7 +23,7 @@ void enable_raw_mode(e_context* ctx) {
 /* sigh */
 void write_wrapped(int file, const char* str, int len) {
   ssize_t x = write(file, str, len);
-  (void) x; 
+  (void) x;
 }
 
 
@@ -510,6 +510,8 @@ e_context* e_initial(e_context* ctx, int c) {
       break;
     case 'v': {
       char* str = e_clipboard_paste();
+      // To prevent from crushing in linux
+      if ( !str ) break;
       e_context* new = e_context_copy(ctx);
       new->history = ctx;
       int i = 0;
