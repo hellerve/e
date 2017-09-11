@@ -339,36 +339,6 @@ void meta(e_context* ctx) {
 
     ctx->cy = a-1;
   }
-  else if (c[0] == '-'){
-#ifdef __unix__
-    char *termcmd = c;
-    char cmdmsg[1024];
-    FILE *term;
-    unsigned int indexdel = 0;
-    
-    memmove(&termcmd[indexdel], &termcmd[indexdel+1], strlen(termcmd) - indexdel);
-    term = popen(termcmd, "r");
-    
-    if (!term){
-      e_set_status_msg(ctx, "Invalid parameter or incorrect command!");
-    }
-    
-    fgets(cmdmsg, sizeof(cmdmsg), term);
-    fputs(cmdmsg, stdout);
-    
-    e_set_status_msg(ctx, "%s", cmdmsg);
-    
-    free(termcmd);
-    //e_set_status_msg(ctx,"%s",termcmd);
-    
-    int status = pclose(term);
-    if(status == -1){
-      e_set_status_msg(ctx, "PClose error on process!");
-    }
-#else
-    e_set_status_msg(ctx, "You're system doesn't support this feature yet, please contact the developers of e with your system details.");
-#endif
-  }
   else {
 #ifdef WITH_LUA
     if (e_lua_meta_command(ctx, c)) {

@@ -66,7 +66,6 @@ the following commands:
 - `s`: save and quit (might be prompted for a file name)
 - `q`: exit (will abort if the file has unsaved content)
 - `!`: force exit
-- `-`: launches terminal command appended
 - Number `n`: jump to line `n`
 
 ### Writing syntax files
