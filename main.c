@@ -1,6 +1,11 @@
 #include <signal.h>
 #include <execinfo.h>
 #include "src/editor.h"
+#ifdef __unix__
+#ifdef gnome
+#include <gtk/gtk.h>
+#endif
+#endif
 
 #define STRINGIFY2(X) #X
 #define STRINGIFY(X) STRINGIFY2(X)
@@ -34,8 +39,13 @@ void exitf() {
 #endif
 }
 
-
 int main(int argc, char** argv) {
+#ifdef __unix__
+#ifdef gnome
+	gtk_init(&argc, &argv);
+#endif
+#endif
+	
   stx = syntax_init((char*) STXDIR);
   GLOB = e_setup();
 
