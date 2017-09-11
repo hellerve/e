@@ -340,7 +340,7 @@ void meta(e_context* ctx) {
     ctx->cy = a-1;
   }
   else if (c[0] == '-'){
-#if (defined __unix__ || __APPLE__)
+#ifdef __unix__
     char *termcmd = c;
     char cmdmsg[1024];
     FILE *term;
