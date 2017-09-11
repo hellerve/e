@@ -2,7 +2,9 @@
 #include <execinfo.h>
 #include "src/editor.h"
 #ifdef __unix__
+#ifdef gnome
 #include <gtk/gtk.h>
+#endif
 #endif
 
 #define STRINGIFY2(X) #X
