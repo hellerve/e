@@ -366,7 +366,7 @@ void meta(e_context* ctx) {
       e_set_status_msg(ctx, "PClose error on process!");
     }
 #else
-    e_set_status_msg(ctx, "You're system doesn't support this feature yet, please contact the developers of e with your system details.");
+    e_set_status_msg(ctx, "You're system doesn't support this feature yet, please contact the e developers.");
 #endif
   }
   else {
