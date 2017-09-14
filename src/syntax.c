@@ -1,5 +1,13 @@
 #include "syntax.h"
 
+void exit_compile(int err, char* pat, regex_t* rx) {
+  char estr[50];
+  int l = regerror(err, rx, estr, 50);
+  if (l > 50) exit(err);
+  fprintf(stderr, "Syntax: encountered an error in pattern \"%s\": %s\n", pat, estr);
+  exit(err);
+}
+
 int syntax_lookup_color(char* key) {
   if (!strncmp(key, "number", 6)) return HL_NUM;
   else if (!strncmp(key, "string", 6)) return HL_STRING;
@@ -26,9 +34,10 @@ void syntax_read_extensions(syntax* c, FILE* f, char* line) {
     if (fgets(line, MAX_LINE_WIDTH, f)) {
       ln = strlen(line)-1;
       line[ln] = '\0'; // replace newline
+      line = strtriml(line);
       reg = realloc(reg, sizeof(regex_t) * ++regl);
-      err = regcomp(&reg[regl-1], strtriml(line), REG_EXTENDED);
-      if (err) exit(err);
+      err = regcomp(&reg[regl-1], line, REG_EXTENDED);
+      if (err) exit_compile(err, line, &reg[regl-1]);
     }
   }
   c->matchlen = regl;
@@ -50,7 +59,7 @@ void syntax_read_pattern(syntax* c, FILE* f, char* key, char* value) {
   memmove(value+1, value, ln);
   value[0] = '^';
   err = regcomp(&pat->pattern, value, REG_EXTENDED);
-  if (err) exit(err);
+  if (err) exit_compile(err, value, &pat->pattern);
 
   if ((fpeek(f) == ' ' || fpeek(f) == '\t') && fgets(line, MAX_LINE_WIDTH, f)) {
     char* l = strtriml(line);
@@ -58,7 +67,7 @@ void syntax_read_pattern(syntax* c, FILE* f, char* key, char* value) {
     memmove(l+1, l, ln);
     l[0] = '^';
     err = regcomp(&pat->closing, l, REG_EXTENDED);
-    if (err) exit(err);
+    if (err) exit_compile(err, l, &pat->closing);
     pat->multiline = 1;
   }
 
