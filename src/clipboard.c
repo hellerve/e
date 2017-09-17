@@ -72,10 +72,11 @@ char* e_clipboard_paste() {
   return buffer;
 }
 
-#elif __unix__
-#ifdef gnome
+#elif defined(__unix__) && defined(gnome)
 #include <gtk/gtk.h>
+
 GtkClipboard *clipboard;
+
 void e_clipboard_copy(char* str){
 	clipboard = gtk_clipboard_get(GDK_SELECTION_PRIMARY);
 	gchar *clip_str = str;
@@ -86,7 +87,7 @@ char* e_clipboard_paste(){
 	clipboard = gtk_clipboard_get(GDK_SELECTION_PRIMARY);
 	return (char*)gtk_clipboard_wait_for_text(clipboard);
 }
-#endif
+
 #else
 
 void e_clipboard_copy(char* str) {}
