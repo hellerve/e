@@ -16,6 +16,11 @@ ifeq ($(OS),$(filter $(OS), FreeBSD OpenBSD NetBSD))
 CADDFLAG += -lexecinfo
 endif
 
+ifeq ($(OS),$(filter $(OS),  Linux))
+CADDFLAG += -lm
+$(info CADDFLAG is $(CADDFLAG))
+endif
+
 ifeq ($(DE),gnome)
 CADDFLAG += `pkg-config --libs --cflags gtk+-3.0` `pkg-config --libs gtk+-3.0`
 DE_FLAG := -Dgnome
