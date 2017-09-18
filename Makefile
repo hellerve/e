@@ -14,6 +14,8 @@ DE := $(shell echo $(DESKTOP_SESSION))
 
 ifeq ($(OS),$(filter $(OS), FreeBSD OpenBSD NetBSD))
 CADDFLAG += -lexecinfo
+else ifeq ($(OS),$(filter $(OS),  Linux))
+LUA_FLAGS += -lm
 endif
 
 ifeq ($(DE),gnome)
