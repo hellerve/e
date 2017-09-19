@@ -1,10 +1,12 @@
 #include "syntax.h"
 
-void compile_err(int err, char* pat, regex_t* rx) {
+void compile_err(int err, char* pat, regex_t* rx, char* name, int line) {
   char estr[80];
   int l = regerror(err, rx, estr, 80);
   if (l > 80) return;
-  fprintf(stderr, "Syntax: encountered an error in pattern \"%s\": %s\n", pat, estr);
+  fprintf(stderr,
+          "Syntax: encountered an error in pattern \"%s\" (%s:%d): %s\n",
+          pat, name, line, estr);
   return;
 }
 
@@ -21,8 +23,8 @@ int syntax_lookup_color(char* key) {
   return HL_NORMAL;
 }
 
-
-int syntax_read_extensions(syntax* c, FILE* f, char* line) {
+int syntax_read_extensions(syntax* c, FILE* f, char* name, int lineno,
+                           char* line) {
   int regl = 1;
   size_t ln;
   regex_t* reg = malloc(sizeof(regex_t));
@@ -38,7 +40,7 @@ int syntax_read_extensions(syntax* c, FILE* f, char* line) {
       reg = realloc(reg, sizeof(regex_t) * ++regl);
       err = regcomp(&reg[regl-1], line, REG_EXTENDED);
       if (err) {
-        compile_err(err, line, &reg[regl-1]);
+        compile_err(err, line, &reg[regl-1], name, lineno);
 
         for (int i = 0; i < regl; i++) regfree(&reg[regl]);
         free(reg);
@@ -53,7 +55,8 @@ int syntax_read_extensions(syntax* c, FILE* f, char* line) {
 }
 
 
-int syntax_read_pattern(syntax* c, FILE* f, char* key, char* value) {
+int syntax_read_pattern(syntax* c, FILE* f, char* name, int lineno,
+                        char* key, char* value) {
   pattern* pat = malloc(sizeof(pattern));
   char line[MAX_LINE_WIDTH];
   size_t ln;
@@ -68,7 +71,7 @@ int syntax_read_pattern(syntax* c, FILE* f, char* key, char* value) {
   value[0] = '^';
   err = regcomp(&pat->pattern, value, REG_EXTENDED);
   if (err) {
-    compile_err(err, value, &pat->pattern);
+    compile_err(err, value, &pat->pattern, name, lineno);
     regfree(&pat->pattern);
     free(pat);
     return 1;
@@ -81,7 +84,7 @@ int syntax_read_pattern(syntax* c, FILE* f, char* key, char* value) {
     l[0] = '^';
     err = regcomp(&pat->closing, l, REG_EXTENDED);
     if (err) {
-      compile_err(err, l, &pat->closing);
+      compile_err(err, l, &pat->closing, name, lineno);
       regfree(&pat->pattern);
       regfree(&pat->closing);
       free(pat);
@@ -105,6 +108,7 @@ syntax* syntax_read_file(char* fname) {
   char* value;
   char* line = malloc(MAX_LINE_WIDTH);
   size_t ln;
+  int lineno = 0;
 
   f = fopen(fname, "r");
 
@@ -115,6 +119,7 @@ syntax* syntax_read_file(char* fname) {
   c->npatterns = 0;
 
   while (fgets(line, MAX_LINE_WIDTH, f)) {
+    lineno++;
     ln = strlen(line)-1;
     line[ln] = '\0'; // replace newline
     key = strtok(line, ":");
@@ -122,7 +127,7 @@ syntax* syntax_read_file(char* fname) {
     if (!strncmp(key, "displayname", 11)) {
       c->ftype = strdup(strtriml(value));
     } else if (!strncmp(key, "extensions", 10)) {
-      if (syntax_read_extensions(c, f, strtriml(value))) {
+      if (syntax_read_extensions(c, f, fname, lineno, strtriml(value))) {
         fclose(f);
         free(line);
         syntax_free(c);
@@ -130,7 +135,7 @@ syntax* syntax_read_file(char* fname) {
       }
     } else {
       if (value) {
-        if (syntax_read_pattern(c, f, key, strtriml(value))) {
+        if (syntax_read_pattern(c, f, fname, lineno, key, strtriml(value))) {
           fclose(f);
           free(line);
           syntax_free(c);
