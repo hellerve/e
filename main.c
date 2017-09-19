@@ -28,7 +28,7 @@ void handler(int sig) {
 void exitf() {
   disable_raw_mode(GLOB);
   e_context_free(GLOB);
-  if (stx) syntax_free(stx);
+  if (stx) syntaxes_free(stx);
 #ifdef WITH_LUA
   if (l) e_lua_free();
 #endif
@@ -37,6 +37,10 @@ void exitf() {
 
 int main(int argc, char** argv) {
   stx = syntax_init((char*) STXDIR);
+  if (!stx) {
+    fputs("Failed to initialize e: couldn’t read syntax files.\n", stderr);
+    return 1;
+  }
   GLOB = e_setup();
 
   signal(SIGSEGV, handler);
