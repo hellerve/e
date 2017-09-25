@@ -1,5 +1,15 @@
 #include "syntax.h"
 
+void compile_err(int err, char* pat, regex_t* rx, char* name, int line) {
+  char estr[80];
+  int l = regerror(err, rx, estr, 80);
+  if (l > 80) return;
+  fprintf(stderr,
+          "Syntax: encountered an error in pattern \"%s\" (%s:%d): %s\n",
+          pat, name, line, estr);
+  return;
+}
+
 int syntax_lookup_color(char* key) {
   if (!strncmp(key, "number", 6)) return HL_NUM;
   else if (!strncmp(key, "string", 6)) return HL_STRING;
@@ -13,8 +23,8 @@ int syntax_lookup_color(char* key) {
   return HL_NORMAL;
 }
 
-
-void syntax_read_extensions(syntax* c, FILE* f, char* line) {
+int syntax_read_extensions(syntax* c, FILE* f, char* name, int lineno,
+                           char* line) {
   int regl = 1;
   size_t ln;
   regex_t* reg = malloc(sizeof(regex_t));
@@ -26,17 +36,27 @@ void syntax_read_extensions(syntax* c, FILE* f, char* line) {
     if (fgets(line, MAX_LINE_WIDTH, f)) {
       ln = strlen(line)-1;
       line[ln] = '\0'; // replace newline
+      line = strtriml(line);
       reg = realloc(reg, sizeof(regex_t) * ++regl);
-      err = regcomp(&reg[regl-1], strtriml(line), REG_EXTENDED);
-      if (err) exit(err);
+      err = regcomp(&reg[regl-1], line, REG_EXTENDED);
+      if (err) {
+        compile_err(err, line, &reg[regl-1], name, lineno);
+
+        for (int i = 0; i < regl; i++) regfree(&reg[regl]);
+        free(reg);
+
+        return 0;
+      }
     }
   }
   c->matchlen = regl;
   c->filematch = reg;
+  return 0;
 }
 
 
-void syntax_read_pattern(syntax* c, FILE* f, char* key, char* value) {
+int syntax_read_pattern(syntax* c, FILE* f, char* name, int lineno,
+                        char* key, char* value) {
   pattern* pat = malloc(sizeof(pattern));
   char line[MAX_LINE_WIDTH];
   size_t ln;
@@ -50,7 +70,12 @@ void syntax_read_pattern(syntax* c, FILE* f, char* key, char* value) {
   memmove(value+1, value, ln);
   value[0] = '^';
   err = regcomp(&pat->pattern, value, REG_EXTENDED);
-  if (err) exit(err);
+  if (err) {
+    compile_err(err, value, &pat->pattern, name, lineno);
+    regfree(&pat->pattern);
+    free(pat);
+    return 1;
+  }
 
   if ((fpeek(f) == ' ' || fpeek(f) == '\t') && fgets(line, MAX_LINE_WIDTH, f)) {
     char* l = strtriml(line);
@@ -58,7 +83,13 @@ void syntax_read_pattern(syntax* c, FILE* f, char* key, char* value) {
     memmove(l+1, l, ln);
     l[0] = '^';
     err = regcomp(&pat->closing, l, REG_EXTENDED);
-    if (err) exit(err);
+    if (err) {
+      compile_err(err, l, &pat->closing, name, lineno);
+      regfree(&pat->pattern);
+      regfree(&pat->closing);
+      free(pat);
+      return 1;
+    }
     pat->multiline = 1;
   }
 
@@ -66,6 +97,7 @@ void syntax_read_pattern(syntax* c, FILE* f, char* key, char* value) {
   c->patterns = realloc(c->patterns, sizeof(pattern)*c->npatterns);
   memmove(&c->patterns[c->npatterns-1], pat, sizeof(pattern));
   free(pat);
+  return 0;
 }
 
 
@@ -76,6 +108,7 @@ syntax* syntax_read_file(char* fname) {
   char* value;
   char* line = malloc(MAX_LINE_WIDTH);
   size_t ln;
+  int lineno = 0;
 
   f = fopen(fname, "r");
 
@@ -86,6 +119,7 @@ syntax* syntax_read_file(char* fname) {
   c->npatterns = 0;
 
   while (fgets(line, MAX_LINE_WIDTH, f)) {
+    lineno++;
     ln = strlen(line)-1;
     line[ln] = '\0'; // replace newline
     key = strtok(line, ":");
@@ -93,9 +127,21 @@ syntax* syntax_read_file(char* fname) {
     if (!strncmp(key, "displayname", 11)) {
       c->ftype = strdup(strtriml(value));
     } else if (!strncmp(key, "extensions", 10)) {
-      syntax_read_extensions(c, f, strtriml(value));
+      if (syntax_read_extensions(c, f, fname, lineno, strtriml(value))) {
+        fclose(f);
+        free(line);
+        syntax_free(c);
+        return NULL;
+      }
     } else {
-      if (value) syntax_read_pattern(c, f, key, strtriml(value));
+      if (value) {
+        if (syntax_read_pattern(c, f, fname, lineno, key, strtriml(value))) {
+          fclose(f);
+          free(line);
+          syntax_free(c);
+          return NULL;
+        }
+      }
     }
   }
 
@@ -120,7 +166,13 @@ syntax** syntax_init(char* dir) {
     if (!strcmpr(ep->d_name, (char*) ".stx")) continue;
     snprintf(fname, sizeof(fname), "%s/%s", dir, ep->d_name);
     c = syntax_read_file(fname);
-    if (!c) continue;
+    if (!c) {
+      ret = realloc(ret, sizeof(syntax*)*retl);
+      ret[retl-1] = NULL;
+      syntaxes_free(ret);
+      closedir(dp);
+      return NULL;
+    }
     ret = realloc(ret, sizeof(syntax*)*retl);
     ret[retl-1] = c;
     retl++;
@@ -132,27 +184,24 @@ syntax** syntax_init(char* dir) {
   return ret;
 }
 
+void syntax_free(syntax* s) {
+  int i;
+  free(s->ftype);
 
-void syntax_free(syntax** stx) {
-  int i = 0;
-  int j;
-  while (stx[i]) {
-    syntax* s = stx[i];
+  for (i = 0; i < s->matchlen; i++) regfree(&s->filematch[i]);
+  free(s->filematch);
 
-    free(s->ftype);
-
-    for (j = 0; j < s->matchlen; j++) regfree(&s->filematch[j]);
-    free(s->filematch);
-
-    for (j = 0; j < s->npatterns; j++) {
-      regfree(&s->patterns[j].pattern);
-      if (s->patterns[j].multiline) regfree(&s->patterns[j].closing);
-    }
-    free(s->patterns);
-
-    free(s);
-
-    i++;
+  for (i = 0; i < s->npatterns; i++) {
+    regfree(&s->patterns[i].pattern);
+    if (s->patterns[i].multiline) regfree(&s->patterns[i].closing);
   }
+  free(s->patterns);
+
+  free(s);
+}
+
+void syntaxes_free(syntax** stx) {
+  int i = 0;
+  while (stx[i]) syntax_free(stx[i++]);
   free(stx);
 }

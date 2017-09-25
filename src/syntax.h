@@ -26,4 +26,5 @@ typedef struct syntax {
 } syntax;
 
 syntax** syntax_init(char*);
-void syntax_free(syntax**);
+void syntax_free(syntax*);
+void syntaxes_free(syntax**);
