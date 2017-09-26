@@ -27,6 +27,36 @@ void write_wrapped(int file, const char* str, int len) {
 }
 
 
+void e_correct_for_fullwidth(e_context* ctx, append_buf* ab) {
+  int i;
+  char buf[5];
+  regex_t r;
+  e_row row;
+  char* tmp;
+  char* cur;
+  regmatch_t m;
+
+  i = 0;
+  row = ctx->row[ctx->cy];
+  tmp = calloc(ctx->cx+1, 1);
+  memcpy(tmp, row.str, ctx->cx);
+  cur = tmp;
+  regcomp(&r, "[\uff00-\uff5e\u30a0-\u30ff\u3040-\u309f]", REG_EXTENDED);
+
+  while (regexec(&r, cur, 1, &m, 0) != REG_NOMATCH) {
+    i += 1;
+    cur += m.rm_eo+2;
+  }
+
+  free(tmp);
+
+  if(!i) return;
+
+  i = snprintf(buf, 5, "%dC", i);
+  ansi_append(ab, buf, i);
+}
+
+
 void e_die(const char* s) {
   write_wrapped(STDOUT_FILENO, "\x1b[2J\x1b[?47l\x1b""8", 12);
   perror(s);
@@ -217,6 +247,7 @@ void e_clear_screen(e_context* ctx) {
                                        ctx->rx-ctx->coff+1);
   ansi_append(&ab, buf, strlen(buf));
   ansi_append(&ab, "?25h", 4);
+  e_correct_for_fullwidth(ctx, &ab);
 
   write_wrapped(STDOUT_FILENO, ab.b, ab.len);
   ab_free(&ab);
