@@ -58,16 +58,6 @@ void e_draw_rows(e_context* ctx, append_buf* ab) {
     filerow = h + ctx->roff;
     if (filerow >= ctx->nrows) {
       color_append(BLUE, ab, "~\x1b[K", 4);
-      if (h == ctx->rows / 3 && !ctx->nrows) {
-        char welcome[80];
-        int len = snprintf(welcome, sizeof(welcome),
-                           "E -- braindead editing -- version %s",
-                           E_VERSION);
-        if (len > ctx->cols) len = ctx->cols;
-        int padding = (ctx->cols - len) / 2;
-        while (padding--) ab_append(ab, " ", 1);
-        color_append(NORMAL, ab, welcome, len);
-      }
     } else {
       ansi_append(ab, "K", 1);
       int len = ctx->row[filerow].rsize - ctx->coff;
@@ -1575,7 +1565,8 @@ void e_initialize_lua() {
 
 
 char* e_lua_eval(e_context* ctx, char* str) {
-  char* ret = malloc(80*sizeof(char));
+  char* ret;
+  int size;
   if (!l) e_initialize_lua();
 
   lua_pushlightuserdata(l, ctx);
@@ -1585,14 +1576,18 @@ char* e_lua_eval(e_context* ctx, char* str) {
   addret(l, str);
 
   if (lua_pcall(l, 0, 1, 0)) {
-    snprintf(ret, 80, "lua can't execute expression: %s.", lua_tostring(l, -1));
+    size = snprintf(NULL, 0, "lua can't execute expression: %s.", lua_tostring(l, -1));
+    ret = malloc(size*sizeof(char));
+    snprintf(ret, size, "lua can't execute expression: %s.", lua_tostring(l, -1));
     lua_pop(l, 1);
   } else {
-    snprintf(ret, 80, "%s", lua_tostring(l, -1));
+    size = snprintf(NULL, 0, "%s", lua_tostring(l, -1));
+    ret = malloc(size*sizeof(char));
+    snprintf(ret, size, "%s", lua_tostring(l, -1));
     lua_pop(l, lua_gettop(l));
   }
 
-  ret[79] = '\0';
+  ret[size-1] = '\0';
   return ret;
 }
 
@@ -1604,11 +1599,17 @@ char* e_lua_run_file(e_context* ctx, const char* file) {
   lua_pushlightuserdata(l, ctx);
   lua_setglobal(l, "ctx");
 
-  if (luaL_dofile(l, file)) snprintf(ret, 80, "%s", lua_tostring(l, -1));
-  else ret[0] = '\0';
+  if (luaL_dofile(l, file)) {
+    size = snprintf(NULL, 0, "%s", lua_tostring(l, -1));
+    ret = malloc(size*sizeof(char));
+    snprintf(ret, size, "%s", lua_tostring(l, -1));
+  } else {
+    size = 1;
+    ret = malloc(size*sizeof(char));
+  }
   lua_pop(l, lua_gettop(l));
 
-  ret[79] = '\0';
+  ret[size-1] = '\0';
   return ret;
 }
 
