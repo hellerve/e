@@ -1,0 +1,6 @@
+displayname: carp
+extensions: .*\.carp$
+comment|no_sep: ;.*$
+keyword: (\+|-|\*|/)
+type: (defn|def|let-do|let|do|use-all|use|load)
+pragma|no_sep: (\(|\)|\[|\])
