@@ -15,3 +15,4 @@ pragma: \s*#(ifdef|ifndef|if) .*$
 pragma: \s*#(endif)
 string|no_sep: "([^\\\"]|\\.)*"
 string|no_sep: '([^\\\']|\\.)'
+number: [+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)[fl]?

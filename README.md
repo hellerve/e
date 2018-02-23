@@ -83,14 +83,18 @@ extensions: .*\.cpp$
             .*\.c$
             .*\.h$
 comment|no_sep: //.*$
-keyword:(restrict|switch|if|while|for|break|continue|return|else|try|catch|else|struct|union|class|typedef|static|enum|case|asm|default|delete|do|explicit|export|extern|inline|namespace|new|public|private|protected|sizeof|template|this|typedef|typeid|typename|using|virtual|friend|goto)
+keyword: (restrict|switch|if|while|for|break|continue|return|else|try|catch|else|struct|union|class|typedef|static|enum|case|asm|default|delete|do|explicit|export|extern|inline|namespace|new|public|private|protected|sizeof|template|this|typedef|typeid|typename|using|virtual|friend|goto)
 type: (auto|bool|char|const|double|float|inline|int|mutable|register|short|unsigned|volatile|void|int8_t|int16_t|int32_t|int64_t|uint8_t|uint16_t|uint32_t|uint64_t|size_t|ssize_t|time_t)
-comment|no_sep: /\*([^(\*/)]*)?
-                 (.*)?\*/
-pragma: #(include|pragma|define|undef) .*$
+comment|no_sep: /\*.*\*/
+comment|no_sep: /\*.*
+                 .*\*/
+pragma: \s*#(include|pragma|define|undef) .*$
 predefined: (NULL|stdout|stderr)
-pragma: #(ifdef|ifndef|if) .*$
-             #endif\w*$
+pragma: \s*#(ifdef|ifndef|if) .*$
+pragma: \s*#(endif)
+string|no_sep: "([^\\\"]|\\.)*"
+string|no_sep: '([^\\\']|\\.)'
+number: [+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)[fl]?
 ```
 
 `displayname` is the string displayed at the bottom of `e`. `extensions`

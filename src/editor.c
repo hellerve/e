@@ -642,15 +642,6 @@ void e_update_hl(e_context* ctx, e_row* row) {
 
   while (i < row->rsize) {
     char c = row->render[i];
-    char prev = (i>0) ? row->hl[i-1] : HL_NORMAL;
-
-    if ((isdigit(c) && (prev_sep || prev == HL_NUM)) ||
-        (c == '.' && prev == HL_NUM)) {
-      row->hl[i] = HL_NUM;
-      i++;
-      prev_sep = 0;
-      continue;
-    }
 
     regmatch_t rem;
     for (j = 0; j < ctx->stx->npatterns; j++) {

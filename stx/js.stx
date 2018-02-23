@@ -13,3 +13,4 @@ type: (Object|Number|Array|Boolean|String|Error|Date|JSON|Math|Regexp)
 number: /[^/]/\w
 string|no_sep: '([^\\\']|\\.)*'
 string|no_sep: "([^\\\"]|\\.)*"
+number: [+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)

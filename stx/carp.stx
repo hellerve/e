@@ -7,3 +7,4 @@ type: ([A-Z][a-zA-Z\.]*|λ)
 predefined: (true|false)
 pragma|no_sep: (\(|\)|\[|\]|@|&)
 string|no_sep: "([^\\\"]|\\.)*"
+number: [+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)[fl]?
