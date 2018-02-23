@@ -24,6 +24,7 @@ It can be scripted through Lua.
   - JavaScript (experimental)
   - Go (experimental)
   - Haskell (experimental)
+  - Carp (experimental)
   - Markdown (unfinished)
 
 ## Installation
