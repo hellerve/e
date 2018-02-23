@@ -116,6 +116,13 @@ file in the repository that you can look at for inspiration.
 
 That's it!
 
+### Tabs vs. Spaces
+
+I personally always uses spaces for indentation, thus `e` does the same. It will
+always convert all of the tabs in your file to spaces automatically for you, and
+I understand if that bit of behavior is undesired by some. It is very much by
+design, though, and probably won’t change.
+
 ----
 
 Have fun!

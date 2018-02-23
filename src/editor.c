@@ -60,10 +60,10 @@ void e_draw_rows(e_context* ctx, append_buf* ab) {
       color_append(BLUE, ab, "~\x1b[K", 4);
     } else {
       ansi_append(ab, "K", 1);
-      int len = ctx->row[filerow].rsize - ctx->coff;
+      int len = ctx->row[filerow].size - ctx->coff;
       if (len < 0) len = 0;
       if (len > ctx->cols) len = ctx->cols;
-      char* c = &ctx->row[filerow].render[ctx->coff];
+      char* c = &ctx->row[filerow].str[ctx->coff];
       char* hl = &ctx->row[filerow].hl[ctx->coff];
       char current_color = 0;
       for (i = 0; i < len; i++) {
@@ -105,7 +105,7 @@ void e_draw_status(e_context* ctx, append_buf* ab) {
   int rlen = snprintf(rstatus, sizeof(rstatus), "%s  |  %d/%d  %d ",
                       ctx->stx ? ctx->stx->ftype : "unknown filetype",
                       ctx->cy+1, ctx->nrows,
-                      utf8len_to(ctx->row[ctx->cy].render, ctx->cx)+1);
+                      utf8len_to(ctx->row[ctx->cy].str, ctx->cx)+1);
   color_append(WHITE, ab, status, len);
   len += 12;
 
@@ -221,11 +221,11 @@ void e_move_cursor(e_context* ctx, int c) {
   if (c == ctx->right) c = ARROW_RIGHT;
   switch (c) {
     case ARROW_LEFT:
-      if (ctx->cx) { if (isutf8cont(ctx->row[ctx->cy].render[--ctx->cx])) ctx->cx-=2; }
+      if (ctx->cx) { if (isutf8cont(ctx->row[ctx->cy].str[--ctx->cx])) ctx->cx-=2; }
       else if (ctx->cy > 0) ctx->cx = ctx->row[--ctx->cy].size;
       break;
     case ARROW_RIGHT:
-      if (ctx->cx < rowl) { if (isutf8cont(ctx->row[ctx->cy].render[ctx->cx++])) ctx->cx+=2; }
+      if (ctx->cx < rowl) { if (isutf8cont(ctx->row[ctx->cy].str[ctx->cx++])) ctx->cx+=2; }
       else if (ctx->cy < ctx->nrows-1) { ctx->cy++; ctx->cx = 0; }
       break;
     case ARROW_UP:
@@ -459,7 +459,7 @@ e_context* e_initial(e_context* ctx, int c) {
       ctx->mode = EDIT;
       break;
     case 't':
-      ctx->cx = ctx->row[ctx->cy].rsize;
+      ctx->cx = ctx->row[ctx->cy].size;
       ctx->mode = EDIT;
       break;
     case 'r': {
@@ -620,16 +620,16 @@ void e_update_hl(e_context* ctx, e_row* row) {
   int k;
   int prev_sep = 1;
   int open_pattern = row->idx ? ctx->row[row->idx-1].open_pattern : -1;
-  row->hl = realloc(row->hl, row->rsize*sizeof(char));
-  memset(row->hl, HL_NORMAL, row->rsize);
+  row->hl = realloc(row->hl, row->size*sizeof(char));
+  memset(row->hl, HL_NORMAL, row->size);
 
   if (!ctx->stx) return;
 
   if (open_pattern > -1) {
     pattern pat = ctx->stx->patterns[open_pattern];
     regmatch_t rem;
-    if (regexec(&pat.closing, row->render, (size_t) 1, &rem, 0)) {
-      memset(row->hl, pat.color, row->rsize);
+    if (regexec(&pat.closing, row->str, (size_t) 1, &rem, 0)) {
+      memset(row->hl, pat.color, row->size);
       row->open_pattern = open_pattern;
       return;
     } else {
@@ -640,23 +640,23 @@ void e_update_hl(e_context* ctx, e_row* row) {
     }
   }
 
-  while (i < row->rsize) {
-    char c = row->render[i];
+  while (i < row->size) {
+    char c = row->str[i];
 
     regmatch_t rem;
     for (j = 0; j < ctx->stx->npatterns; j++) {
       pattern pat = ctx->stx->patterns[j];
       if ((!prev_sep && pat.needs_sep)) continue;
-      if (!regexec(&pat.pattern, row->render+i, (size_t) 1, &rem, 0)) {
+      if (!regexec(&pat.pattern, row->str+i, (size_t) 1, &rem, 0)) {
         int len = rem.rm_eo - rem.rm_so;
-        if (pat.needs_sep && row->rsize > i+len && !issep(row->render[i+len])) continue;
+        if (pat.needs_sep && row->size > i+len && !issep(row->str[i+len])) continue;
         // nasty hack to allow todos in comments
         if (pat.color == HL_COMMENT) {
           for (k = i; k < i+len; k++) {
             short todo_l = 0;
-            if (!strncmp(row->render+k, "TODO", 4)) todo_l = 4;
-            else if (!strncmp(row->render+k, "FIXME", 5)) todo_l = 5;
-            else if (!strncmp(row->render+k, "XXX", 3)) todo_l = 3;
+            if (!strncmp(row->str+k, "TODO", 4)) todo_l = 4;
+            else if (!strncmp(row->str+k, "FIXME", 5)) todo_l = 5;
+            else if (!strncmp(row->str+k, "XXX", 3)) todo_l = 3;
             if (todo_l) {
               int idx;
               for (idx = 0; idx < todo_l; idx++) row->hl[k+idx] = HL_TODO;
@@ -670,7 +670,7 @@ void e_update_hl(e_context* ctx, e_row* row) {
         }
         i += len;
         if (pat.multiline) {
-          if(regexec(&pat.closing, row->render+i, (size_t) 1, &rem, 0)) {
+          if(regexec(&pat.closing, row->str+i, (size_t) 1, &rem, 0)) {
             row->open_pattern = j;
           } else {
             int len = rem.rm_eo - rem.rm_so;
@@ -696,19 +696,6 @@ void e_update_row(e_context* ctx, e_row* row) {
   int i = 0;
   for (j = 0; j < row->size; j++) if (row->str[j] == '\t') tabs++;
 
-  free(row->render);
-  row->render = malloc((row->size+tabs*ctx->tab_width+1)*sizeof(char));
-
-  for (j = 0; j < row->size; j++) {
-    if (row->str[j] == '\t') {
-      row->render[i++] = ' ';
-      while (i % ctx->tab_width) row->render[i++] = ' ';
-    } else {
-      row->render[i++] = row->str[j];
-    }
-  }
-  row->render[i] = '\0';
-  row->rsize = i;
   int open_pattern = row->open_pattern;
   row->open_pattern = -1;
   e_update_hl(ctx, row);
@@ -750,7 +737,6 @@ void e_row_del_char(e_context* ctx, e_row* row, int at) {
 
 
 void e_free_row(e_row* row) {
-  free(row->render);
   free(row->str);
   free(row->hl);
 }
@@ -790,8 +776,6 @@ void e_insert_row(e_context* ctx, int at, char* s, size_t len) {
   ctx->row[at].str = malloc((len + 1)*sizeof(char));
   memcpy(ctx->row[at].str, s, len);
   ctx->row[at].str[len] = '\0';
-  ctx->row[at].rsize = 0,
-  ctx->row[at].render = NULL;
   ctx->row[at].hl = NULL;
   ctx->row[at].open_pattern = -1;
   e_update_row(ctx, &ctx->row[at]);
@@ -884,7 +868,16 @@ void e_open(e_context* ctx, const char* filename) {
   char* line = NULL;
   size_t linecap = 0;
   ssize_t len;
+  char* tab = malloc(ctx->tab_width*sizeof(char)+1);
+  memset(tab, ' ', ctx->tab_width);
+  tab[ctx->tab_width] = '\0';
   while ((len = getline(&line, &linecap, fp)) != -1) {
+    char* res = strsub(line, "\t", tab);
+    if (res) {
+      free(line);
+      line = res;
+      len = strlen(line);
+    }
     if (len > 0 && (line[len-1] == '\n' || line[len-1] == '\r')) len--;
 
     e_append_row(ctx, line, len);
@@ -940,7 +933,7 @@ void e_find_cb(e_context* ctx, char* query, int key) {
   static char* saved_hl = NULL;
 
   if (saved_hl) {
-    memcpy(ctx->row[saved_line].hl, saved_hl, ctx->row[saved_line].rsize);
+    memcpy(ctx->row[saved_line].hl, saved_hl, ctx->row[saved_line].size);
     free(saved_hl);
     saved_hl = NULL;
   }
@@ -973,15 +966,15 @@ void e_find_cb(e_context* ctx, char* query, int key) {
     else if (cur == ctx->nrows) cur = 0;
 
     e_row* row = &ctx->row[cur];
-    if (!regexec(&re, row->render, (size_t) 1, &rem, 0)) {
+    if (!regexec(&re, row->str, (size_t) 1, &rem, 0)) {
       prev = cur;
       ctx->cy = cur;
       ctx->cx = e_rx_to_cx(row, (int) rem.rm_so, ctx->tab_width);
       ctx->roff = ctx->nrows;
 
       saved_line = cur;
-      saved_hl = malloc(row->rsize*sizeof(char));
-      memcpy(saved_hl, row->hl, row->rsize);
+      saved_hl = malloc(row->size*sizeof(char));
+      memcpy(saved_hl, row->hl, row->size);
       memset(&row->hl[rem.rm_so], HL_MATCH, rem.rm_eo-rem.rm_so);
       break;
     }
@@ -1048,11 +1041,11 @@ void e_replace_all(e_context* ctx) {
       row->size = strlen(res);
       found += 1;
     }
-    res = strsub(row->render, query, replace);
+    res = strsub(row->str, query, replace);
     if (res) {
-      free(row->render);
-      row->render = res;
-      row->rsize = strlen(res);
+      free(row->str);
+      row->str = res;
+      row->size = strlen(res);
     }
   }
 
@@ -1140,10 +1133,8 @@ e_context* e_context_copy(e_context* ctx) {
     row->idx = ctx->row[i].idx;
     row->size = ctx->row[i].size;
     row->str = strdup(ctx->row[i].str);
-    row->rsize = ctx->row[i].rsize;
-    row->render = strdup(ctx->row[i].render);
-    row->hl = malloc(ctx->row[i].rsize*sizeof(char));
-    memcpy(row->hl, ctx->row[i].hl, ctx->row[i].rsize);
+    row->hl = malloc(ctx->row[i].size*sizeof(char));
+    memcpy(row->hl, ctx->row[i].hl, ctx->row[i].size);
     row->open_pattern = ctx->row[i].open_pattern;
   }
 
@@ -1172,7 +1163,6 @@ long long e_context_size(e_context* ctx) {
   size += sizeof(e_row) * ctx->nrows;
 
   for (i = 0; i < ctx->nrows; i++) {
-    size += strlen(ctx->row[i].render);
     size += strlen(ctx->row[i].str);
   }
 

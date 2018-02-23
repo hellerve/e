@@ -47,7 +47,7 @@ char fpeek(FILE *f) {
 }
 
 
-char *strsub(char* str, char *pat, char *sub) {
+char* strsub(char* str, const char *pat, const char *sub) {
   char* res;
   char* ins;
   char* tmp;

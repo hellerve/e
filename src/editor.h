@@ -26,8 +26,6 @@ typedef struct {
   int size;
   char* str;
 
-  int rsize;
-  char* render;
   char* hl;
   short open_pattern;
 } e_row;

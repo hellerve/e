@@ -16,7 +16,7 @@ int utf8len_to(const char*, int);
 short isutf8cont(char);
 short isnum(char*);
 short issep(char);
-char* strsub(char*, char*, char*);
+char* strsub(char*, const char*, const char*);
 char* strtriml(char*);
 int strcmpr(char*, char*);
 char fpeek(FILE*);
