@@ -6,9 +6,10 @@ void color_append(int color, append_buf* ab, const char* str, int len) {
     ab_append(ab, str, len);
     return;
   }
+  char colbuf[20];
 
-  char colbuf[4];
-  snprintf(colbuf, 4, "%dm", color);
+  if (color > 50) snprintf(colbuf, 20, "38;5;%dm", color);
+  else snprintf(colbuf, 20, "%dm", color);
 
   ansi_append(ab, colbuf, strlen(colbuf));
   ab_append(ab, str, len);
@@ -23,7 +24,7 @@ int syntax_to_color(char hl) {
   switch (hl) {
     case HL_NUM: return RED;
     case HL_MATCH: return BLUE_BG;
-    case HL_STRING: return MAGENTA;
+    case HL_STRING: return ORANGE;
     case HL_COMMENT: return CYAN;
     case HL_KEYWORD: return YELLOW;
     case HL_TYPE: return GREEN;

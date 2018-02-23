@@ -29,7 +29,9 @@ enum {
   BLUE_BG,
   MAGENTA_BG,
   CYAN_BG,
-  WHITE_BG
+  WHITE_BG,
+
+  ORANGE = 172
 };
 
 enum {
