@@ -4,4 +4,9 @@ pragma: (from|import)
 keyword: (and|as|assert|break|class|continue|def|del|elif|else|except|exec|finally|for|global|if|in|is|lambda|not|or|pass|raise|return|try|while|with|yield)
 predefined: (abs|all|any|basestring|bin|bool|bytearray|callable|chr|classmethod|cmp|compile|complex|delattr|dict|dir|divmod|enumerate|eval|execfile|file|filter|float|format|frozenset|getattr|globals|hasattr|hash|help|hex|id|input|int|isianstance|issubclass|iter|len|list|locals|long|map|max|memoryview|min|next|object|oct|open|ord|pow|print|property|range|raw_input|reduce|reload|repr|reversed|round|set|setattr|slice|sorted|staticmethod|str|sum|super|type|tuple|unichr|unicode|vars|xrange|zip|__import__|True|False|None)
 comment: #.*$
+string|no_sep: """[^(""")]*"""
+string|no_sep: """.*
+               .*"""
+string|no_sep: '([^\\\']|\\.)*'
+string|no_sep: "([^\\\"]|\\.)*"
 type: @[^\(]*

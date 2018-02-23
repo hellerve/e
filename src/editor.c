@@ -619,7 +619,6 @@ void e_update_hl(e_context* ctx, e_row* row) {
   int j;
   int k;
   int prev_sep = 1;
-  int ins = 0;
   int open_pattern = row->idx ? ctx->row[row->idx-1].open_pattern : -1;
   row->hl = realloc(row->hl, row->rsize*sizeof(char));
   memset(row->hl, HL_NORMAL, row->rsize);
@@ -644,24 +643,6 @@ void e_update_hl(e_context* ctx, e_row* row) {
   while (i < row->rsize) {
     char c = row->render[i];
     char prev = (i>0) ? row->hl[i-1] : HL_NORMAL;
-
-    if (ins) {
-      row->hl[i] = HL_STRING;
-      if (c== '\\' && row->rsize > i+1) {
-        row->hl[i+1] = HL_STRING;
-        i += 2;
-        continue;
-      }
-      if (c == ins) ins = 0;
-      i++;
-      prev_sep = 1;
-      continue;
-    } else if (c == '"' || c == '\'') {
-      ins = c;
-      row->hl[i] = HL_STRING;
-      i++;
-      continue;
-    }
 
     if ((isdigit(c) && (prev_sep || prev == HL_NUM)) ||
         (c == '.' && prev == HL_NUM)) {

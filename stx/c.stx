@@ -13,3 +13,5 @@ pragma: \s*#(include|pragma|define|undef) .*$
 predefined: (NULL|stdout|stderr)
 pragma: \s*#(ifdef|ifndef|if) .*$
 pragma: \s*#(endif)
+string|no_sep: "([^\\\"]|\\.)*"
+string|no_sep: '([^\\\']|\\.)'

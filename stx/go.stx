@@ -7,3 +7,5 @@ comment|no_sep: //.*$
 comment|no_sep: /\*.*\*/
 comment|no_sep: /\*.*
                  .*\*/
+string|no_sep: '([^\\\']|\\.)'
+string|no_sep: "([^\\\"]|\\.)*"

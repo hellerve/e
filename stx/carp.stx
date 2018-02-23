@@ -6,3 +6,4 @@ keyword: (defn|def|let-do|let|do|use-all|use|load|if|while|ref|address|set!|the|
 type: ([A-Z][a-zA-Z\.]*|λ)
 predefined: (true|false)
 pragma|no_sep: (\(|\)|\[|\]|@|&)
+string|no_sep: "([^\\\"]|\\.)*"

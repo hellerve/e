@@ -11,3 +11,5 @@ keyword: (enum|implements|interface|let|package|private|protected|public|static)
 keyword: await
 type: (Object|Number|Array|Boolean|String|Error|Date|JSON|Math|Regexp)
 number: /[^/]/\w
+string|no_sep: '([^\\\']|\\.)*'
+string|no_sep: "([^\\\"]|\\.)*"
