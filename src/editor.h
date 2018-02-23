@@ -15,7 +15,7 @@
 #include "syntax.h"
 #include "clipboard.h"
 
-#define E_VERSION "0.2.0"
+#define E_VERSION "0.2.1"
 
 #ifndef CTRL
 #define CTRL(k) ((k) & 0x1f)

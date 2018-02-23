@@ -42,7 +42,7 @@ void exitf() {
 int main(int argc, char** argv) {
 #ifdef __unix__
 #ifdef gnome
-	gtk_init(&argc, &argv);
+  gtk_init(&argc, &argv);
 #endif
 #endif
 	
@@ -70,12 +70,12 @@ int main(int argc, char** argv) {
 
   e_set_status_msg(GLOB, "HELP: :q = quit");
 
-  #ifdef WITH_LUA
+#ifdef WITH_LUA
   char* evald = e_lua_run_file(GLOB, (char*) STRINGIFY(ERC));
 
   if (evald) e_set_status_msg(GLOB, evald);
   free(evald);
-  #endif
+#endif
 
   while(1) {
     e_clear_screen(GLOB);
