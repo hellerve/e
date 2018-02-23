@@ -29,6 +29,7 @@ int syntax_to_color(char hl) {
     case HL_TYPE: return GREEN;
     case HL_PRAGMA: return MAGENTA;
     case HL_PREDEF: return RED;
+    case HL_TODO: return YELLOW_BG;
     default: return NORMAL;
   }
 }

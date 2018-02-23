@@ -678,7 +678,24 @@ void e_update_hl(e_context* ctx, e_row* row) {
       if (!regexec(&pat.pattern, row->render+i, (size_t) 1, &rem, 0)) {
         int len = rem.rm_eo - rem.rm_so;
         if (pat.needs_sep && row->rsize > i+len && !issep(row->render[i+len])) continue;
-        for (k = i; k < i+len; k++) row->hl[k] = pat.color;
+        // nasty hack to allow todos in comments
+        if (pat.color == HL_COMMENT) {
+          for (k = i; k < i+len; k++) {
+            short todo_l = 0;
+            if (!strncmp(row->render+k, "TODO", 4)) todo_l = 4;
+            else if (!strncmp(row->render+k, "FIXME", 5)) todo_l = 5;
+            else if (!strncmp(row->render+k, "XXX", 3)) todo_l = 3;
+            if (todo_l) {
+              int idx;
+              for (idx = 0; idx < todo_l; idx++) row->hl[k+idx] = HL_TODO;
+              k += todo_l-1;
+            } else {
+              row->hl[k] = pat.color;
+            }
+          }
+        } else {
+          for (k = i; k < i+len; k++) row->hl[k] = pat.color;
+        }
         i += len;
         if (pat.multiline) {
           if(regexec(&pat.closing, row->render+i, (size_t) 1, &rem, 0)) {

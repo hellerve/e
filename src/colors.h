@@ -23,13 +23,13 @@ enum {
   WHITE,
 
   BLACK_BG = 40,
-  RED_BG = 41,
-  GREEN_BG = 42,
-  YELLOW_BG = 43,
-  BLUE_BG = 44,
-  MAGENTA_BG = 45,
-  CYAN_BG = 46,
-  WHITE_BG = 47
+  RED_BG,
+  GREEN_BG,
+  YELLOW_BG,
+  BLUE_BG,
+  MAGENTA_BG,
+  CYAN_BG,
+  WHITE_BG
 };
 
 enum {
@@ -43,6 +43,7 @@ enum {
   HL_PREDEF,
 
   HL_MATCH,
+  HL_TODO,
 };
 
 
