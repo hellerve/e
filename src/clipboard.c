@@ -59,13 +59,15 @@ void e_clipboard_copy(char* str) {
   system(cmd);
 }
 
+const int MAX_COPY_BUFFER = 2048;
+
 char* e_clipboard_paste() {
   FILE* pb = popen("pbpaste", "r");
 
   if (!pb) return NULL;
 
-  char* buffer = malloc(1024);
-  fgets(buffer, 1024, pb);
+  char* buffer = malloc(MAX_COPY_BUFFER);
+  fgets(buffer, MAX_COPY_BUFFER, pb);
 
   pclose(pb);
 

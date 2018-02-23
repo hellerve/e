@@ -1,6 +1,8 @@
 displayname: carp
 extensions: .*\.carp$
 comment|no_sep: ;.*$
-keyword: (\+|-|\*|/)
-type: (defn|def|let-do|let|do|use-all|use|load)
-pragma|no_sep: (\(|\)|\[|\])
+type: (not|or|and|\+|-|\*|/=|/|=|>=|<=|>|<|inc|dec|println|print|get-line|from-string|mod|seed|random|random-between|str|mask|delete|append|count|duplicate|cstr|chars|from-chars|to-int|from-int|sin|cos|sqrt|acos|atan2|exit|time|srand|cond|floor|abs|sort-with|subarray|prefix-array|suffix-array|reverse|sum|min|max|first|last|reduce|format|zero|read-file|bit-shift-left|bit-shift-right|bit-and|bit-or|bit-xor|bit-not|safe-add|safe-sub|safe-mul|add-ref|sub-ref|mul-ref|div-ref|even\?|odd\?|cmp|allocate|repeat-indexed|sanitize-addresses|memory-balance|reset-memory-balance!|log-memory-balance!|memory-logged|assert-balanced|trace|pi|e|swap!|update!|char-at|tail|head|split-by|words|lines|pad-left|pad-right|count-char|empty\?|random-sized|substring|prefix-string|suffix-string|starts-with\?|ends-with\?|string-join|free|sleep-seconds|sleep-micros|atan2|neg|to-float|from-float|tan|asin|atan|cosh|sinh|tanh|exp|frexp|ldexp|log|log10|modf|pow|ceil|clamp|approx|refstr|foreach|=>|==>|repeat|nth|replicate|range|raw|aset!|aset|push-back|pop-back|sort|index-of|element-count)
+keyword: (defn|def|let-do|let|do|use-all|use|load|if|while|ref|address|set!|the|defmacro|defdynamic|quote|cons|list|array|expand|deftype|register-type|system-include|register|defmodule|copy|module|defalias|definterface|eval|expand|instantiate|type|info|help|quit|env|build|run|cat|project-set!|local-include|add-cflag|add-lib|project|ignore|fmt|mac-only|linux-only|windows-only|when|unless|comment|forever-do|case|and\*|or\*|str\*|println\*|for)
+type: ([A-Z][a-zA-Z\.]*|λ)
+predefined: (true|false)
+pragma|no_sep: (\(|\)|\[|\]|@|&)

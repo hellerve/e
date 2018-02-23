@@ -1594,6 +1594,7 @@ char* e_lua_eval(e_context* ctx, char* str) {
 
 char* e_lua_run_file(e_context* ctx, const char* file) {
   char* ret = malloc(80*sizeof(char));
+  int size = 0;
   if (!l) e_initialize_lua();
 
   lua_pushlightuserdata(l, ctx);

@@ -7,7 +7,7 @@
 #include "colors.h"
 #include "util.h"
 
-#define MAX_LINE_WIDTH 1025
+#define MAX_LINE_WIDTH 2048
 
 typedef struct pattern {
   regex_t pattern;
