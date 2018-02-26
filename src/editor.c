@@ -333,7 +333,7 @@ void meta(e_context* ctx) {
 #ifdef WITH_LUA
     if (e_lua_meta_command(ctx, c)) {
 #endif
-    e_set_status_msg(ctx, "Unknown meta command.");
+      e_set_status_msg(ctx, "Unknown meta command.");
 #ifdef WITH_LUA
     }
 #endif
@@ -519,7 +519,7 @@ e_context* e_initial(e_context* ctx, int c) {
       new->history = ctx;
       char* lua_exp = e_prompt(new, "Type Lua expression: %s", NULL);
       if (!lua_exp) return new;
-      char* evald   = e_lua_eval(new, lua_exp);
+      char* evald = e_lua_eval(new, lua_exp);
       if (evald) e_set_status_msg(new, "%s", evald);
       free(lua_exp);
       free(evald);
@@ -1300,6 +1300,17 @@ int e_lua_move(lua_State* l) {
     lua_getglobal(l, "ctx");
     e_context* ctx = lua_touserdata(l, lua_gettop(l));
 
+    if (y < 0 || y >= ctx->nrows) {
+      e_set_status_msg(ctx, "LUA ERROR: tried to set the cursor to line %d (which is invalid)", y);
+      return 0;
+    }
+
+    int rowl = (ctx->cy >= ctx->nrows) ? 0 : ctx->row[ctx->cy].size;
+    if (x < 0 || x >= rowl) {
+      e_set_status_msg(ctx, "LUA ERROR: tried to set the cursor to column %d (which is invalid)", x);
+      return 0;
+    }
+
     ctx->cx = x;
     ctx->cy = y;
   }
@@ -1560,6 +1571,10 @@ char* e_lua_eval(e_context* ctx, char* str) {
     snprintf(ret, size, "lua can't execute expression: %s.", lua_tostring(l, -1));
     lua_pop(l, 1);
   } else {
+    if (lua_isnil(l, -1)) {
+      return NULL;
+    }
+
     size = snprintf(NULL, 0, "%s", lua_tostring(l, -1));
     ret = malloc(size*sizeof(char));
     snprintf(ret, size, "%s", lua_tostring(l, -1));
@@ -1613,7 +1628,13 @@ int e_lua_meta_command(e_context* ctx, const char* cmd) {
   lua_getglobal(l, "meta_commands");
   if (e_lua_get_field(cmd)) return 1;
 
-  return lua_pcall(l, 0, 1, 0);
+  int res = lua_pcall(l, 0, 1, 0);
+
+  if (res == LUA_ERRRUN) {
+    e_set_status_msg(ctx, "LUA ERROR: %s", lua_tostring(l, -1));
+    lua_pop(l, lua_gettop(l));
+  }
+  return 0;
 }
 
 
