@@ -156,7 +156,6 @@ int e_rx_to_cx(e_row* row, int rx, int tab_width) {
   int cur_rx = 0;
   int cx;
   for (cx = 0; cx < row->size; cx++) {
-    if (row->str[cx] == '\t') cur_rx += (tab_width - 1) - (cur_rx % tab_width);
     cur_rx++;
     if (cur_rx > rx) return cx;
   }
@@ -169,7 +168,6 @@ int e_cx_to_rx(e_row* row, int cx, int tab_width) {
   int j;
 
   for (j = 0; j < cx; j++) {
-    if (row->str[j] == '\t') rx += (tab_width - 1) - (rx % tab_width);
     if (!isutf8cont(row->str[j])) rx++;
   }
   return rx;
@@ -881,6 +879,8 @@ void e_open(e_context* ctx, const char* filename) {
     if (len > 0 && (line[len-1] == '\n' || line[len-1] == '\r')) len--;
 
     e_append_row(ctx, line, len);
+    free(line);
+    line = NULL;
   }
   free(line);
   fclose(fp);
