@@ -116,11 +116,14 @@ syntax* syntax_read_file(char* fname) {
 
   c = malloc(sizeof(syntax));
   c->patterns = NULL;
+  c->ftype = NULL;
+  c->filematch = NULL;
   c->npatterns = 0;
 
   while (fgets(line, MAX_LINE_WIDTH, f)) {
-    lineno++;
     ln = strlen(line)-1;
+    if (ln == -1) continue;
+    lineno++;
     line[ln] = '\0'; // replace newline
     key = strtok(line, ":");
     value = strtok(NULL, ":");
@@ -186,10 +189,12 @@ syntax** syntax_init(char* dir) {
 
 void syntax_free(syntax* s) {
   int i;
-  free(s->ftype);
+  if (s->ftype) free(s->ftype);
 
-  for (i = 0; i < s->matchlen; i++) regfree(&s->filematch[i]);
-  free(s->filematch);
+  if (s->filematch) {
+    for (i = 0; i < s->matchlen; i++) regfree(&s->filematch[i]);
+    free(s->filematch);
+  }
 
   for (i = 0; i < s->npatterns; i++) {
     regfree(&s->patterns[i].pattern);
