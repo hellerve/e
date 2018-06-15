@@ -1,7 +1,7 @@
 #include "colors.h"
 
 void color_append(int color, append_buf* ab, const char* str, int len) {
-  /* TODO: this is an ugly special case */
+  /* TODO: this is an ugly special case needed by UTF-8 strings */
   if (len == 1 && isutf8cont(str[0])) {
     ab_append(ab, str, len);
     return;
