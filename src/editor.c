@@ -1553,7 +1553,6 @@ void e_initialize_lua() {
   lua_setglobal(l, "meta_commands");
 }
 
-
 char* e_lua_eval(e_context* ctx, char* str) {
   char* ret;
   int size;
@@ -1566,7 +1565,7 @@ char* e_lua_eval(e_context* ctx, char* str) {
   addret(l, str);
 
   if (lua_pcall(l, 0, 1, 0)) {
-    size = snprintf(NULL, 0, "lua can't execute expression: %s.", lua_tostring(l, -1));
+    size = snprintf(NULL, 0, "lua can't execute expression: %s.", lua_tostring(l, -1))+1;
     ret = malloc(size*sizeof(char));
     snprintf(ret, size, "lua can't execute expression: %s.", lua_tostring(l, -1));
     lua_pop(l, 1);
@@ -1575,7 +1574,7 @@ char* e_lua_eval(e_context* ctx, char* str) {
       return NULL;
     }
 
-    size = snprintf(NULL, 0, "%s", lua_tostring(l, -1));
+    size = snprintf(NULL, 0, "%s", lua_tostring(l, -1))+1;
     ret = malloc(size*sizeof(char));
     snprintf(ret, size, "%s", lua_tostring(l, -1));
     lua_pop(l, lua_gettop(l));
