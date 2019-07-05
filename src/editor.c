@@ -27,6 +27,12 @@ void write_wrapped(int file, const char* str, int len) {
 }
 
 
+/* sigh */
+ssize_t min(ssize_t a, ssize_t b) {
+  return a < b ? a : b;
+}
+
+
 void e_die(const char* s) {
   write_wrapped(STDOUT_FILENO, "\x1b[2J\x1b[?47l\x1b""8", 12);
   perror(s);
@@ -134,8 +140,8 @@ void e_draw_message(e_context* ctx, append_buf* ab) {
 void e_set_status_msg(e_context* ctx, const char* fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
-  vsnprintf(ctx->statusmsg, ctx->cols, fmt, ap);
-  ctx->statusmsg[ctx->cols] = '\0';
+  int len = vsnprintf(ctx->statusmsg, ctx->cols, fmt, ap);
+  ctx->statusmsg[min(len, ctx->cols-1)] = '\0';
   va_end(ap);
   ctx->statusmsg_time = time(NULL);
 }
@@ -1113,6 +1119,7 @@ e_context* e_context_copy(e_context* ctx) {
   e_context* new = malloc(sizeof(e_context));
   new->orig = ctx->orig;
   e_get_win_size(new);
+  new->rows -= 2;
   new->cx = ctx->cx;
   new->rx = ctx->rx;
   new->cy = ctx->cy;
@@ -1142,7 +1149,8 @@ e_context* e_context_copy(e_context* ctx) {
   new->roff = ctx->roff;
   new->dirty = ctx->dirty;
   new->statusmsg = malloc(ctx->cols);
-  strcpy(new->statusmsg, ctx->statusmsg);
+  strncpy(new->statusmsg, ctx->statusmsg, ctx->cols);
+  new->statusmsg[min(ctx->cols-1, strlen(ctx->statusmsg))] = '\0';
   new->statusmsg_time = ctx->statusmsg_time;
 
   new->history = ctx->history;
