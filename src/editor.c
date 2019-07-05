@@ -134,8 +134,8 @@ void e_draw_message(e_context* ctx, append_buf* ab) {
 void e_set_status_msg(e_context* ctx, const char* fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
-  vsnprintf(ctx->statusmsg, sizeof(ctx->statusmsg), fmt, ap);
-  ctx->statusmsg[79] = '\0';
+  vsnprintf(ctx->statusmsg, ctx->cols, fmt, ap);
+  ctx->statusmsg[ctx->cols] = '\0';
   va_end(ap);
   ctx->statusmsg_time = time(NULL);
 }
@@ -1104,6 +1104,7 @@ void e_context_free(e_context* ctx) {
   }
   free(ctx->row);
   free(ctx->filename);
+  free(ctx->statusmsg);
   if (ctx->history) e_context_free(ctx->history);
   free(ctx);
 }
@@ -1111,8 +1112,7 @@ void e_context_free(e_context* ctx) {
 e_context* e_context_copy(e_context* ctx) {
   e_context* new = malloc(sizeof(e_context));
   new->orig = ctx->orig;
-  new->cols = ctx->cols;
-  new->rows = ctx->rows;
+  e_get_win_size(new);
   new->cx = ctx->cx;
   new->rx = ctx->rx;
   new->cy = ctx->cy;
@@ -1141,6 +1141,7 @@ e_context* e_context_copy(e_context* ctx) {
   new->coff = ctx->coff;
   new->roff = ctx->roff;
   new->dirty = ctx->dirty;
+  new->statusmsg = malloc(ctx->cols);
   strcpy(new->statusmsg, ctx->statusmsg);
   new->statusmsg_time = ctx->statusmsg_time;
 
@@ -1211,6 +1212,7 @@ e_context*  e_setup() {
   ctx->coff = 0;
   ctx->roff = 0;
   ctx->rows -= 2;
+  ctx->statusmsg = malloc(ctx->cols);
   ctx->statusmsg[0] = '\0';
   ctx->statusmsg_time = 0;
   ctx->dirty = 0;
@@ -1629,7 +1631,7 @@ int e_lua_meta_command(e_context* ctx, const char* cmd) {
 
   int res = lua_pcall(l, 0, 1, 0);
 
-  if (res == LUA_ERRRUN) {
+  if (res != LUA_OK) {
     e_set_status_msg(ctx, "LUA ERROR: %s", lua_tostring(l, -1));
     lua_pop(l, lua_gettop(l));
   }
@@ -1649,7 +1651,14 @@ int e_lua_key(e_context* ctx, int key) {
   lua_getglobal(l, "keys");
   if (e_lua_get_field(x)) return 1;
 
-  return lua_pcall(l, 0, 1, 0);
+  int res = lua_pcall(l, 0, 1, 0);
+
+
+  if (res != LUA_OK) {
+    e_set_status_msg(ctx, "LUA ERROR: %s", lua_tostring(l, -1));
+    lua_pop(l, lua_gettop(l));
+  }
+  return 0;
 }
 
 

@@ -46,7 +46,7 @@ typedef struct e_context {
   int coff;
   int roff;
   char dirty;
-  char statusmsg[80];
+  char* statusmsg;
   time_t statusmsg_time;
 
   struct e_context* history;
