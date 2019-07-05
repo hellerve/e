@@ -49,7 +49,7 @@ such as saving the file, searching, and replacing.
 
 Use `wasd` or the arrow keys for movement. Editing (backspace, etc.) works normally.
 
-- `n`: insert a line below the cursor and start editing (*n*ext) 
+- `n`: insert a line below the cursor and start editing (*n*ext)
 - `p`: insert a line above the cursor and start editing (*p*revious)
 - `b`: jump to the *b*eginning of the line and start editing
 - `t`: jump to the end of the line and start editing (*t*erminus)
