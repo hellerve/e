@@ -59,13 +59,6 @@ int main(int argc, char** argv) {
 
   e_set_highlighting(GLOB, stx);
 
-#ifdef WITH_LUA
-  char* evald = e_lua_run_file(GLOB, (char*) STRINGIFY(ERC));
-
-  if (evald) e_set_status_msg(GLOB, evald);
-  free(evald);
-#endif
-
   if (argc > 1) {
     e_open(GLOB, argv[1]);
   }
@@ -76,6 +69,13 @@ int main(int argc, char** argv) {
   }
 
   e_set_status_msg(GLOB, "HELP: :q = quit");
+
+#ifdef WITH_LUA
+  char* evald = e_lua_run_file(GLOB, (char*) STRINGIFY(ERC));
+
+  if (evald) e_set_status_msg(GLOB, evald);
+  free(evald);
+#endif
 
   while(1) {
     e_clear_screen(GLOB);
