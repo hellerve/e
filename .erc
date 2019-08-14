@@ -1,4 +1,4 @@
-set_tab(2) -- sets tab with
+set_tab(2) -- sets tab width
 
 -- registers a meta command under `:hi` that inserts hi and notifies you
 meta_commands["hi"] = function()
